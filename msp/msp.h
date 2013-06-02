@@ -1,5 +1,5 @@
-#ifndef MSP_H
-#define MSP_H
+#ifndef MSP_MSP_H
+#define MSP_MSP_H
 
 #include <stdint.h>
 
