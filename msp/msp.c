@@ -3,6 +3,7 @@
 #endif
 
 #include <msp/msp.h>
+#include <msp/defs.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -352,13 +353,13 @@ msp_cmd_raw_imu(int fd)
         goto out;
     }
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < array_size(imu.acc); i++)
         printf("raw_imu.acc[%d]: %d\n", i, imu.acc[i]);
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < array_size(imu.gyr); i++)
         printf("raw_imu.gyr[%d]: %d\n", i, imu.gyr[i]);
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < array_size(imu.adc); i++)
         printf("raw_imu.adc[%d]: %d\n", i, imu.adc[i]);
 
 out:

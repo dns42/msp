@@ -5,3 +5,4 @@ bin_PROGRAMS  = msp
 
 msp_SOURCES  = msp.c
 msp_SOURCES += msp.h
+msp_SOURCES += defs.h
