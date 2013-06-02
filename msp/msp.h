@@ -76,9 +76,9 @@ enum msp_multitype {
 #define MSP_RAW_IMU             102
 
 struct msp_raw_imu {
-    uint16_t acc[3];
-    uint16_t gyr[3];
-    uint16_t adc[3];
+    int16_t acc[3];
+    int16_t gyr[3];
+    int16_t adc[3];
 };
 
 /*

@@ -353,13 +353,13 @@ msp_cmd_raw_imu(int fd)
     }
 
     for (i = 0; i < 3; i++)
-        printf("raw_imu.acc[%d]: %u\n", i, imu.acc[i]);
+        printf("raw_imu.acc[%d]: %d\n", i, imu.acc[i]);
 
     for (i = 0; i < 3; i++)
-        printf("raw_imu.gyr[%d]: %u\n", i, imu.gyr[i]);
+        printf("raw_imu.gyr[%d]: %d\n", i, imu.gyr[i]);
 
     for (i = 0; i < 3; i++)
-        printf("raw_imu.adc[%d]: %u\n", i, imu.adc[i]);
+        printf("raw_imu.adc[%d]: %d\n", i, imu.adc[i]);
 
 out:
     return rc;
