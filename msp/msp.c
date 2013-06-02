@@ -330,13 +330,24 @@ out:
 static int
 msp_raw_imu(int fd, struct msp_raw_imu *imu)
 {
-    int rc;
+    int rc, i;
 
     rc = msp_req_send(fd, MSP_RAW_IMU, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(fd, MSP_RAW_IMU, imu, sizeof(*imu));
+    if (rc)
+        goto out;
+
+    for (i = 0; i < array_size(imu->acc); i++)
+        imu->acc[i] = avrtoh(imu->acc[i]);
+
+    for (i = 0; i < array_size(imu->gyr); i++)
+        imu->gyr[i] = avrtoh(imu->gyr[i]);
+
+    for (i = 0; i < array_size(imu->adc); i++)
+        imu->adc[i] = avrtoh(imu->adc[i]);
 out:
     return rc;
 }
