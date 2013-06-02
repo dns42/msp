@@ -377,6 +377,37 @@ out:
     return rc;
 }
 
+static int
+msp_altitude(int fd, int32_t *alt)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_ALTITUDE, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_ALTITUDE, alt, sizeof(*alt));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_altitude(int fd)
+{
+    int32_t alt;
+    int rc;
+
+    rc = msp_altitude(fd, &alt);
+    if (rc) {
+        perror("msp_altitude");
+        goto out;
+    }
+
+    printf("altitude: %d\n", alt);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -387,6 +418,7 @@ msp_usage(FILE *s, const char *prog)
     fprintf(s,
             "Commands:\n");
     fprintf(s,
+            "  altitude -- read altitude\n"
             "  ident -- identify firmware / revision\n"
             "  raw-imu -- read raw IMU data\n");
     fprintf(s,
@@ -450,6 +482,13 @@ main(int argc, char **argv)
 
         cmd = argv[optind];
         switch (cmd[0]) {
+        case 'a':
+            if (!strcmp(cmd, "altitude")) {
+                rc = msp_cmd_altitude(fd);
+                optind++;
+                break;
+            }
+            break;
         case 'i':
             if (!strcmp(cmd, "ident")) {
                 rc = msp_cmd_ident(fd);
