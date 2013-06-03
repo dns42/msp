@@ -431,7 +431,7 @@ out:
 static int
 msp_attitude(int fd, struct msp_attitude *att)
 {
-    int rc, i;
+    int rc;
 
     rc = msp_req_send(fd, MSP_ATTITUDE, NULL, 0);
     if (rc)
@@ -441,11 +441,10 @@ msp_attitude(int fd, struct msp_attitude *att)
     if (rc)
         goto out;
 
-    for (i = 0; i < array_size(att->angle); i++)
-        att->angle[i] = avrtoh(att->angle[i]);
-
-    att->heading = avrtoh(att->heading);
-    att->headwtf = avrtoh(att->headwtf);
+    att->roll = avrtoh(att->roll);
+    att->pitch = avrtoh(att->pitch);
+    att->yaw = avrtoh(att->yaw);
+    att->yawtf = avrtoh(att->yawtf);
 out:
     return rc;
 }
@@ -454,7 +453,7 @@ static int
 msp_cmd_attitude(int fd)
 {
     struct msp_attitude att;
-    int rc, i;
+    int rc;
 
     rc = msp_attitude(fd, &att);
     if (rc) {
@@ -462,12 +461,13 @@ msp_cmd_attitude(int fd)
         goto out;
     }
 
-    for (i = 0; i < array_size(att.angle); i++)
-        printf("attitude.angle[%d]: %d\n", i, att.angle[i]);
+    printf("attitude.roll: %d\n", att.roll);
 
-    printf("attitude.heading: %d\n", att.heading);
+    printf("attitude.pitch: %d\n", att.pitch);
 
-    printf("attitude.headwtf: %d\n", att.headwtf);
+    printf("attitude.yaw: %d\n", att.yaw);
+
+    printf("attitude.yawtf: %d\n", att.yawtf);
 out:
     return rc;
 }

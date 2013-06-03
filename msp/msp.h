@@ -156,9 +156,10 @@ struct msp_raw_imu {
 #define MSP_ATTITUDE            108
 
 struct msp_attitude {
-    int16_t angle[2];
-    int16_t heading;
-    int16_t headwtf;
+    int16_t roll;
+    int16_t pitch;
+    int16_t yaw;
+    int16_t yawtf;
 };
 
 /*
