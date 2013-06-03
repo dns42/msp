@@ -385,13 +385,13 @@ msp_cmd_raw_imu(int fd)
     }
 
     for (i = 0; i < array_size(imu.acc); i++)
-        printf("raw_imu.acc[%d]: %d\n", i, imu.acc[i]);
+        printf("raw-imu.acc[%d]: %d\n", i, imu.acc[i]);
 
     for (i = 0; i < array_size(imu.gyr); i++)
-        printf("raw_imu.gyr[%d]: %d\n", i, imu.gyr[i]);
+        printf("raw-imu.gyr[%d]: %d\n", i, imu.gyr[i]);
 
     for (i = 0; i < array_size(imu.adc); i++)
-        printf("raw_imu.adc[%d]: %d\n", i, imu.adc[i]);
+        printf("raw-imu.adc[%d]: %d\n", i, imu.adc[i]);
 
 out:
     return rc;
@@ -497,7 +497,7 @@ msp_cmd_mag_calibration(int fd)
         goto out;
     }
 
-    printf("mag_calibration: ok\n");
+    printf("mag-calibration: ok\n");
 out:
     return rc;
 }
@@ -527,7 +527,7 @@ msp_cmd_acc_calibration(int fd)
         goto out;
     }
 
-    printf("acc_calibration: ok\n");
+    printf("acc-calibration: ok\n");
 out:
     return rc;
 }
@@ -557,7 +557,7 @@ msp_cmd_eeprom_write(int fd)
         goto out;
     }
 
-    printf("eeprom_write: ok\n");
+    printf("eeprom-write: ok\n");
 out:
     return rc;
 }
@@ -587,7 +587,7 @@ msp_cmd_reset_conf(int fd)
         goto out;
     }
 
-    printf("reset_conf: ok\n");
+    printf("reset-conf: ok\n");
 out:
     return rc;
 }
