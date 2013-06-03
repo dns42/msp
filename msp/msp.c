@@ -478,6 +478,32 @@ msp_cmd_mag_calibration(int fd)
     return rc;
 }
 
+static int
+msp_acc_calibration(int fd)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_ACC_CALIBRATION, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_ACC_CALIBRATION, NULL, 0);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_acc_calibration(int fd)
+{
+    int rc;
+
+    rc = msp_acc_calibration(fd);
+
+    printf("acc_calibration: %s\n", rc ? "err" : "ok" );
+
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -488,6 +514,7 @@ msp_usage(FILE *s, const char *prog)
     fprintf(s,
             "Commands:\n");
     fprintf(s,
+            "  acc-calibration -- calibrate accelerometer\n"
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
             "  ident -- identify firmware / revision\n"
@@ -555,6 +582,11 @@ main(int argc, char **argv)
         cmd = argv[optind];
         switch (cmd[0]) {
         case 'a':
+            if (!strcmp(cmd, "acc-calibration")) {
+                rc = msp_cmd_acc_calibration(fd);
+                optind++;
+                break;
+            }
             if (!strcmp(cmd, "altitude")) {
                 rc = msp_cmd_altitude(fd);
                 optind++;
