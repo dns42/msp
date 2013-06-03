@@ -759,6 +759,38 @@ out:
     return rc;
 }
 
+static int
+msp_rc(int fd, struct msp_rc *mrc)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_RC, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_RC, mrc, sizeof(*mrc));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_rc(int fd)
+{
+    struct msp_rc mrc;
+    int rc, i;
+
+    rc = msp_rc(fd, &mrc);
+    if (rc) {
+        perror("msp_rc");
+        goto out;
+    }
+
+    for (i = 0; i < array_size(mrc.ctl); i++)
+        printf("rc.ctl[%d]: %d\n", i, mrc.ctl[i]);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -777,6 +809,7 @@ msp_usage(FILE *s, const char *prog)
             "  mag-calibration -- calibrate magnetometer\n"
             "  motor -- read motor control\n"
             "  raw-imu -- read raw IMU data\n"
+            "  rc -- read RC controls\n"
             "  reset-conf -- reset params to firmware defaults\n"
             "  servo -- read servo control\n"
             "  status -- read controller status\n"
@@ -886,6 +919,11 @@ main(int argc, char **argv)
         case 'r':
             if (!strcmp(cmd, "raw-imu")) {
                 rc = msp_cmd_raw_imu(fd);
+                optind++;
+                break;
+            }
+            if (!strcmp(cmd, "rc")) {
+                rc = msp_cmd_rc(fd);
                 optind++;
                 break;
             }
