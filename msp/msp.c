@@ -398,15 +398,20 @@ out:
 }
 
 static int
-msp_altitude(int fd, int32_t *alt)
+msp_altitude(int fd, int32_t *_alt)
 {
+    int32_t alt;
     int rc;
 
     rc = msp_req_send(fd, MSP_ALTITUDE, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_ALTITUDE, alt, sizeof(*alt));
+    rc = msp_rsp_recv(fd, MSP_ALTITUDE, &alt, sizeof(alt));
+    if (rc)
+        goto out;
+
+    *_alt = avrtoh(alt);
 out:
     return rc;
 }
