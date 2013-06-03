@@ -492,9 +492,13 @@ msp_cmd_mag_calibration(int fd)
     int rc;
 
     rc = msp_mag_calibration(fd);
+    if (rc) {
+        perror("msp_mag_calibration");
+        goto out;
+    }
 
-    printf("mag_calibration: %s\n", rc ? "err" : "ok" );
-
+    printf("mag_calibration: ok\n");
+out:
     return rc;
 }
 
@@ -518,9 +522,13 @@ msp_cmd_acc_calibration(int fd)
     int rc;
 
     rc = msp_acc_calibration(fd);
+    if (rc) {
+        perror("msp_acc_calibration");
+        goto out;
+    }
 
-    printf("acc_calibration: %s\n", rc ? "err" : "ok" );
-
+    printf("acc_calibration: ok\n");
+out:
     return rc;
 }
 
@@ -544,9 +552,13 @@ msp_cmd_eeprom_write(int fd)
     int rc;
 
     rc = msp_eeprom_write(fd);
+    if (rc) {
+        perror("msp_eeprom_write");
+        goto out;
+    }
 
-    printf("eeprom_write: %s\n", rc ? "err" : "ok");
-
+    printf("eeprom_write: ok\n");
+out:
     return rc;
 }
 
@@ -570,9 +582,13 @@ msp_cmd_reset_conf(int fd)
     int rc;
 
     rc = msp_reset_conf(fd);
+    if (rc) {
+        perror("msp_reset_conf");
+        goto out;
+    }
 
-    printf("reset_conf: %s\n", rc ? "err" : "ok");
-
+    printf("reset_conf: ok\n");
+out:
     return rc;
 }
 
