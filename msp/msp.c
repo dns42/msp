@@ -856,6 +856,64 @@ out:
 }
 
 static int
+msp_set_raw_rc(int fd, const struct msp_raw_rc *rrc)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_SET_RAW_RC, rrc, sizeof(*rrc));
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_SET_RAW_RC, NULL, 0);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_set_raw_rc(int fd, int argc, char **argv)
+{
+    struct msp_raw_rc rrc;
+    int rc;
+
+    memset(&rrc, 0, sizeof(rrc));
+
+    rc = -1;
+
+    while (++optind < argc) {
+        const char *arg;
+        int16_t val;
+        int chn, n;
+
+        arg = argv[optind];
+
+        if (!strcmp(arg, "--"))
+            break;
+
+        n = sscanf(arg, "%d:%hu", &chn, &val);
+        if (n != 2 ||
+            chn < 0 || chn >= array_size(rrc.chn)) {
+            fprintf(stderr,
+                    "invalid rc item '%s', "
+                    "must be '<0-8>:<1000-2000>'\n", arg);
+            errno = EINVAL;
+            goto out;
+        }
+
+        rrc.chn[chn] = htoavr(val);
+    }
+
+    rc = msp_set_raw_rc(fd, &rrc);
+    if (rc) {
+        perror("msp_set_raw_rc");
+        goto out;
+    }
+
+    printf("set-raw-rc: ok\n");
+out:
+    return rc;
+}
+
+static int
 msp_bat(int fd, struct msp_bat *bat)
 {
     int rc;
@@ -907,9 +965,10 @@ msp_usage(FILE *s, const char *prog)
             "  motor -- read motor control\n"
             "  motor-pins -- read motor pin numbers\n"
             "  raw-imu -- read raw IMU data\n"
-            "  rc -- read RC controls\n"
+            "  rc -- read RC channels\n"
             "  reset-conf -- reset params to firmware defaults\n"
             "  servo -- read servo control\n"
+            "  set-raw-rc -- set RC channels\n"
             "  status -- read controller status\n"
             "\n");
 }
@@ -1035,6 +1094,10 @@ main(int argc, char **argv)
         case 's':
             if (!strcmp(cmd, "servo")) {
                 rc = msp_cmd_servo(fd);
+                break;
+            }
+            if (!strcmp(cmd, "set-raw-rc")) {
+                rc = msp_cmd_set_raw_rc(fd, argc, argv);
                 break;
             }
             if (!strcmp(cmd, "status")) {
