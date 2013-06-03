@@ -128,6 +128,10 @@ struct msp_servo {
  */
 #define MSP_MOTOR               104
 
+struct msp_motor {
+    int16_t ctl[8];
+};
+
 /*
  * get
  *   8 rc chan and more

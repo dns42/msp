@@ -727,6 +727,38 @@ out:
     return rc;
 }
 
+static int
+msp_motor(int fd, struct msp_motor *motor)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_MOTOR, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_MOTOR, motor, sizeof(*motor));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_motor(int fd)
+{
+    struct msp_motor motor;
+    int rc, i;
+
+    rc = msp_motor(fd, &motor);
+    if (rc) {
+        perror("msp_motor");
+        goto out;
+    }
+
+    for (i = 0; i < array_size(motor.ctl); i++)
+        printf("motor.ctl[%d]: %d\n", i, motor.ctl[i]);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -743,6 +775,7 @@ msp_usage(FILE *s, const char *prog)
             "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify controller firmware\n"
             "  mag-calibration -- calibrate magnetometer\n"
+            "  motor -- read motor control\n"
             "  raw-imu -- read raw IMU data\n"
             "  reset-conf -- reset params to firmware defaults\n"
             "  servo -- read servo control\n"
@@ -841,6 +874,11 @@ main(int argc, char **argv)
         case 'm':
             if (!strcmp(cmd, "mag-calibration")) {
                 rc = msp_cmd_mag_calibration(fd);
+                optind++;
+                break;
+            }
+            if (!strcmp(cmd, "motor")) {
+                rc = msp_cmd_motor(fd);
                 optind++;
                 break;
             }
