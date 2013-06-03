@@ -816,13 +816,18 @@ out:
 static int
 msp_rc(int fd, struct msp_raw_rc *rrc)
 {
-    int rc;
+    int rc, i;
 
     rc = msp_req_send(fd, MSP_RC, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(fd, MSP_RC, rrc, sizeof(*rrc));
+    if (rc)
+        goto out;
+
+    for (i = 0; i < array_size(rrc->chn); i++)
+        rrc->chn[i] = avrtoh(rrc->chn[i]);
 out:
     return rc;
 }
