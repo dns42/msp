@@ -127,6 +127,12 @@ struct msp_raw_imu {
  */
 #define MSP_ATTITUDE            108
 
+struct msp_attitude {
+    int16_t angle[2];
+    int16_t heading;
+    int16_t headwtf;
+};
+
 /*
  * get
  *      altitude

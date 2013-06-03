@@ -408,6 +408,50 @@ out:
     return rc;
 }
 
+static int
+msp_attitude(int fd, struct msp_attitude *att)
+{
+    int rc, i;
+
+    rc = msp_req_send(fd, MSP_ATTITUDE, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_ATTITUDE, att, sizeof(*att));
+    if (rc)
+        goto out;
+
+    for (i = 0; i < array_size(att->angle); i++)
+        att->angle[i] = avrtoh(att->angle[i]);
+
+    att->heading = avrtoh(att->heading);
+    att->headwtf = avrtoh(att->headwtf);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_attitude(int fd)
+{
+    struct msp_attitude att;
+    int rc, i;
+
+    rc = msp_attitude(fd, &att);
+    if (rc) {
+        perror("msp_attitude");
+        goto out;
+    }
+
+    for (i = 0; i < array_size(att.angle); i++)
+        printf("attitude.angle[%d]: %d\n", i, att.angle[i]);
+
+    printf("attitude.heading: %d\n", att.heading);
+
+    printf("attitude.headwtf: %d\n", att.headwtf);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -419,6 +463,7 @@ msp_usage(FILE *s, const char *prog)
             "Commands:\n");
     fprintf(s,
             "  altitude -- read altitude\n"
+            "  attitude -- read attitude\n"
             "  ident -- identify firmware / revision\n"
             "  raw-imu -- read raw IMU data\n");
     fprintf(s,
@@ -485,6 +530,11 @@ main(int argc, char **argv)
         case 'a':
             if (!strcmp(cmd, "altitude")) {
                 rc = msp_cmd_altitude(fd);
+                optind++;
+                break;
+            }
+            if (!strcmp(cmd, "attitude")) {
+                rc = msp_cmd_attitude(fd);
                 optind++;
                 break;
             }
