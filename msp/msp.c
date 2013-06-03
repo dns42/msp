@@ -592,6 +592,109 @@ out:
     return rc;
 }
 
+static int
+msp_status(int fd, struct msp_status *st)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_STATUS, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_STATUS, st, sizeof(*st));
+out:
+    return rc;
+}
+
+static const char *
+msp_status_hwcap_name(int val)
+{
+    switch (val) {
+    case MSP_STATUS_HWCAP_ACC:
+        return "acc";
+    case MSP_STATUS_HWCAP_BARO:
+        return "baro";
+    case MSP_STATUS_HWCAP_MAG:
+        return "mag";
+    case MSP_STATUS_HWCAP_GPS:
+        return "gps";
+    case MSP_STATUS_HWCAP_SONAR:
+        return "sonar";
+    }
+
+    return "?";
+}
+
+static const char *
+msp_status_box_name(int val)
+{
+    switch (val) {
+    case MSP_STATUS_BOX_ACC:
+        return "acc";
+    case MSP_STATUS_BOX_BARO:
+        return "baro";
+    case MSP_STATUS_BOX_MAG:
+        return "mag";
+    case MSP_STATUS_BOX_CAMSTAB:
+        return "camstab";
+    case MSP_STATUS_BOX_CAMTRIG:
+        return "camtrig";
+    case MSP_STATUS_BOX_ARM:
+        return "arm";
+    case MSP_STATUS_BOX_GPSHOME:
+        return "gpshome";
+    case MSP_STATUS_BOX_GPSHOLD:
+        return "gpshold";
+    case MSP_STATUS_BOX_PASSTHRU:
+        return "passthru";
+    case MSP_STATUS_BOX_HEADFREE:
+        return "headfree";
+    case MSP_STATUS_BOX_BEEPERON:
+        return "beeperon";
+    case MSP_STATUS_BOX_LEDMAX:
+        return "ledmax";
+    case MSP_STATUS_BOX_LLIGHTS:
+        return "llights";
+    case MSP_STATUS_BOX_HEADADJ:
+        return "headadj";
+    }
+
+    return "?";
+}
+
+static int
+msp_cmd_status(int fd)
+{
+    struct msp_status st;
+    int rc, bit;
+
+    rc = msp_status(fd, &st);
+    if (rc) {
+        perror("msp_status");
+        goto out;
+    }
+
+    printf("status.cycle_time: %u\n", st.cycle_time);
+
+    printf("status.i2c_errcnt: %u\n", st.i2c_errcnt);
+
+    printf("status.hwcaps: %#x%s",
+           st.hwcaps, st.hwcaps ? " (" : "\n");
+    for_each_bit(bit, &st.hwcaps)
+        printf("%s%s",
+               msp_status_hwcap_name(bit),
+               bit == st.hwcaps ? ")\n" : ", ");
+
+    printf("status.box: %#x%s",
+           st.box, st.box ? " (" : "\n");
+    for_each_bit(bit, &st.box)
+        printf("%s%s",
+               msp_status_box_name(bit),
+               bit == st.box ? ")\n" : ", ");
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -606,10 +709,11 @@ msp_usage(FILE *s, const char *prog)
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
             "  eeprom-write -- write current params to eeprom\n"
-            "  ident -- identify firmware / revision\n"
+            "  ident -- identify controller firmware\n"
             "  mag-calibration -- calibrate magnetometer\n"
             "  raw-imu -- read raw IMU data\n"
             "  reset-conf -- reset params to firmware defaults\n"
+            "  status -- read controller status\n"
             "\n");
 }
 
@@ -716,6 +820,13 @@ main(int argc, char **argv)
             }
             if (!strcmp(cmd, "reset-conf")) {
                 rc = msp_cmd_reset_conf(fd);
+                optind++;
+                break;
+            }
+            goto invalid;
+        case 's':
+            if (!strcmp(cmd, "status")) {
+                rc = msp_cmd_status(fd);
                 optind++;
                 break;
             }

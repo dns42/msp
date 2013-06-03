@@ -72,6 +72,34 @@ enum msp_multitype {
  */
 #define MSP_STATUS              101
 
+struct msp_status {
+    uint16_t cycle_time;
+    uint16_t i2c_errcnt;
+    uint16_t hwcaps;
+    uint32_t box;
+} PACKED;
+
+#define MSP_STATUS_HWCAP_ACC     (1<<0)
+#define MSP_STATUS_HWCAP_BARO    (1<<1)
+#define MSP_STATUS_HWCAP_MAG     (1<<2)
+#define MSP_STATUS_HWCAP_GPS     (1<<3)
+#define MSP_STATUS_HWCAP_SONAR   (1<<4)
+
+#define MSP_STATUS_BOX_ACC       (1<<0)
+#define MSP_STATUS_BOX_BARO      (1<<1)
+#define MSP_STATUS_BOX_MAG       (1<<2)
+#define MSP_STATUS_BOX_CAMSTAB   (1<<3)
+#define MSP_STATUS_BOX_CAMTRIG   (1<<4)
+#define MSP_STATUS_BOX_ARM       (1<<5)
+#define MSP_STATUS_BOX_GPSHOME   (1<<6)
+#define MSP_STATUS_BOX_GPSHOLD   (1<<7)
+#define MSP_STATUS_BOX_PASSTHRU  (1<<8)
+#define MSP_STATUS_BOX_HEADFREE  (1<<9)
+#define MSP_STATUS_BOX_BEEPERON  (1<<10)
+#define MSP_STATUS_BOX_LEDMAX    (1<<11)
+#define MSP_STATUS_BOX_LLIGHTS   (1<<12)
+#define MSP_STATUS_BOX_HEADADJ   (1<<13)
+
 /*
  * get
  *   9 DOF
