@@ -118,6 +118,10 @@ struct msp_raw_imu {
  */
 #define MSP_SERVO               103
 
+struct msp_servo {
+    int16_t ctl[8];
+};
+
 /*
  * get
  *   8 motors

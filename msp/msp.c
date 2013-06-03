@@ -695,6 +695,38 @@ out:
     return rc;
 }
 
+static int
+msp_servo(int fd, struct msp_servo *servo)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_SERVO, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_SERVO, servo, sizeof(*servo));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_servo(int fd)
+{
+    struct msp_servo servo;
+    int rc, i;
+
+    rc = msp_servo(fd, &servo);
+    if (rc) {
+        perror("msp_servo");
+        goto out;
+    }
+
+    for (i = 0; i < array_size(servo.ctl); i++)
+        printf("servo.ctl[%d]: %d\n", i, servo.ctl[i]);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -713,6 +745,7 @@ msp_usage(FILE *s, const char *prog)
             "  mag-calibration -- calibrate magnetometer\n"
             "  raw-imu -- read raw IMU data\n"
             "  reset-conf -- reset params to firmware defaults\n"
+            "  servo -- read servo control\n"
             "  status -- read controller status\n"
             "\n");
 }
@@ -825,6 +858,11 @@ main(int argc, char **argv)
             }
             goto invalid;
         case 's':
+            if (!strcmp(cmd, "servo")) {
+                rc = msp_cmd_servo(fd);
+                optind++;
+                break;
+            }
             if (!strcmp(cmd, "status")) {
                 rc = msp_cmd_status(fd);
                 optind++;
