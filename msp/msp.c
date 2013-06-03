@@ -562,10 +562,10 @@ msp_usage(FILE *s, const char *prog)
     fprintf(s,
             "Usage:\n"
             "  %s [ -T <tty> ] [ -b <baud> ] [ -V ] [ -h ]"
-            " command [ args .. ] -- ...\n\n", prog);
+            " command [ args .. ] -- ...\n"
+            "\n", prog);
     fprintf(s,
-            "Commands:\n");
-    fprintf(s,
+            "Commands:\n"
             "  acc-calibration -- calibrate accelerometer\n"
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
@@ -573,8 +573,7 @@ msp_usage(FILE *s, const char *prog)
             "  ident -- identify firmware / revision\n"
             "  mag-calibration -- calibrate magnetometer\n"
             "  raw-imu -- read raw IMU data\n"
-            "  reset-conf -- reset params to firmware defaults\n");
-    fprintf(s,
+            "  reset-conf -- reset params to firmware defaults\n"
             "\n");
 }
 
