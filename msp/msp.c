@@ -127,17 +127,17 @@ msp_tty_speed(int arg)
     return -1;
 }
 
-static int
-msp_msg_checksum(char sum, const void *data, char len)
+static uint8_t
+msp_msg_checksum(uint8_t cks, const void *data, char len)
 {
-    const char *pos;
+    const uint8_t *pos;
 
     pos = data;
 
     while (len--)
-        sum ^= *pos++;
+        cks ^= *pos++;
 
-    return sum;
+    return cks;
 }
 
 static int
@@ -158,13 +158,13 @@ msp_req_send(int fd, char cmd, const void *data, char len)
         rc = msp_tty_send(fd, data, len);
 
     if (!rc) {
-        char sum;
+        uint8_t cks;
 
-        sum = msp_msg_checksum(0, &cmd, 1);
+        cks = msp_msg_checksum(0, &cmd, sizeof(cmd));
         if (len)
-            sum = msp_msg_checksum(sum, data, len);
+            cks = msp_msg_checksum(cks, data, len);
 
-        rc = msp_tty_send(fd, &sum, 1);
+        rc = msp_tty_send(fd, &cks, 1);
     }
 
     return rc;
@@ -174,7 +174,7 @@ static int
 msp_rsp_recv(int fd, char cmd, void *data, char len)
 {
     struct msp_hdr hdr;
-    char sum;
+    uint8_t cks;
     int rc;
 
     hdr.dsc = 0;
@@ -205,21 +205,21 @@ msp_rsp_recv(int fd, char cmd, void *data, char len)
         : 0;
 
     if (!rc) {
-        rc = msp_tty_recv(fd, &sum, 1, MSP_TIMEOUT);
+        rc = msp_tty_recv(fd, &cks, 1, MSP_TIMEOUT);
 
-        sum = msp_msg_checksum(sum, &len, 1);
-        sum = msp_msg_checksum(sum, &cmd, 1);
+        cks = msp_msg_checksum(cks, &len, 1);
+        cks = msp_msg_checksum(cks, &cmd, 1);
         if (len)
-            sum = msp_msg_checksum(sum, data, len);
+            cks = msp_msg_checksum(cks, data, len);
 
-        rc = sum ? -1 : 0;
+        rc = cks ? -1 : 0;
     }
 out:
     if (rc && hdr.dsc)
         fprintf(stderr,
-                "rsp %c%c%c len %u/%d cmd %u/%d csum %d\n",
+                "rsp %c%c%c len %u/%d cmd %u/%u cks %02x\n",
                 hdr.tag[0], hdr.tag[1], hdr.dsc,
-                hdr.len, len, hdr.cmd, cmd, sum);
+                hdr.len, len, hdr.cmd, cmd, cks);
 
     return rc;
 }
