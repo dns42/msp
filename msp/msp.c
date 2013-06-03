@@ -452,6 +452,32 @@ out:
     return rc;
 }
 
+static int
+msp_mag_calibration(int fd)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_MAG_CALIBRATION, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_MAG_CALIBRATION, NULL, 0);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_mag_calibration(int fd)
+{
+    int rc;
+
+    rc = msp_mag_calibration(fd);
+
+    printf("mag_calibration: %s\n", rc ? "err" : "ok" );
+
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -465,6 +491,7 @@ msp_usage(FILE *s, const char *prog)
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
             "  ident -- identify firmware / revision\n"
+            "  mag-calibration -- calibrate magnetometer\n"
             "  raw-imu -- read raw IMU data\n");
     fprintf(s,
             "\n");
@@ -542,6 +569,13 @@ main(int argc, char **argv)
         case 'i':
             if (!strcmp(cmd, "ident")) {
                 rc = msp_cmd_ident(fd);
+                optind++;
+                break;
+            }
+            break;
+        case 'm':
+            if (!strcmp(cmd, "mag-calibration")) {
+                rc = msp_cmd_mag_calibration(fd);
                 optind++;
                 break;
             }
