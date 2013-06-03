@@ -814,7 +814,7 @@ out:
 }
 
 static int
-msp_rc(int fd, struct msp_rc *mrc)
+msp_rc(int fd, struct msp_raw_rc *rrc)
 {
     int rc;
 
@@ -822,7 +822,7 @@ msp_rc(int fd, struct msp_rc *mrc)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_RC, mrc, sizeof(*mrc));
+    rc = msp_rsp_recv(fd, MSP_RC, rrc, sizeof(*rrc));
 out:
     return rc;
 }
@@ -830,17 +830,17 @@ out:
 static int
 msp_cmd_rc(int fd)
 {
-    struct msp_rc mrc;
+    struct msp_raw_rc rrc;
     int rc, i;
 
-    rc = msp_rc(fd, &mrc);
+    rc = msp_rc(fd, &rrc);
     if (rc) {
-        perror("msp_rc");
+        perror("msp_rrc");
         goto out;
     }
 
-    for (i = 0; i < array_size(mrc.ctl); i++)
-        printf("rc.ctl[%d]: %d\n", i, mrc.ctl[i]);
+    for (i = 0; i < array_size(rrc.chn); i++)
+        printf("rc.chn[%d]: %d\n", i, rrc.chn[i]);
 out:
     return rc;
 }

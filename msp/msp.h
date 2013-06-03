@@ -138,8 +138,8 @@ struct msp_motor {
  */
 #define MSP_RC                  105
 
-struct msp_rc {
-    int16_t ctl[8];
+struct msp_raw_rc {
+    int16_t chn[8];
 };
 
 /*
