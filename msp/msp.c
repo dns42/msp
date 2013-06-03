@@ -710,13 +710,18 @@ out:
 static int
 msp_servo(int fd, struct msp_servo *servo)
 {
-    int rc;
+    int rc, i;
 
     rc = msp_req_send(fd, MSP_SERVO, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(fd, MSP_SERVO, servo, sizeof(*servo));
+    if (rc)
+        goto out;
+
+    for (i = 0; i < array_size(servo->ctl); i++)
+        servo->ctl[i] = avrtoh(servo->ctl[i]);
 out:
     return rc;
 }
