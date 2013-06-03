@@ -504,6 +504,32 @@ msp_cmd_acc_calibration(int fd)
     return rc;
 }
 
+static int
+msp_eeprom_write(int fd)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_EEPROM_WRITE, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_EEPROM_WRITE, NULL, 0);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_eeprom_write(int fd)
+{
+    int rc;
+
+    rc = msp_eeprom_write(fd);
+
+    printf("eeprom_write: %s\n", rc ? "err" : "ok");
+
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -517,6 +543,7 @@ msp_usage(FILE *s, const char *prog)
             "  acc-calibration -- calibrate accelerometer\n"
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
+            "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify firmware / revision\n"
             "  mag-calibration -- calibrate magnetometer\n"
             "  raw-imu -- read raw IMU data\n");
@@ -594,6 +621,13 @@ main(int argc, char **argv)
             }
             if (!strcmp(cmd, "attitude")) {
                 rc = msp_cmd_attitude(fd);
+                optind++;
+                break;
+            }
+            break;
+        case 'e':
+            if (!strcmp(cmd, "eeprom-write")) {
+                rc = msp_cmd_eeprom_write(fd);
                 optind++;
                 break;
             }
