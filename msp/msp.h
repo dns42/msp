@@ -180,13 +180,19 @@ struct msp_attitude {
  *      variometer
  */
 #define MSP_ALTITUDE            109
+
 /*
  * get
  *      vbat
  *      powermetersum
- *      rssi, if available on rx
+ *      v2.2: rssi, if available on rx
  */
-#define MSP_ANALOG              110
+#define MSP_BAT                 110
+
+struct msp_bat {
+    uint8_t vbat;
+    uint16_t powermetersum;
+} PACKED;
 
 /*
  * get

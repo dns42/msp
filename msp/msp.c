@@ -791,6 +791,38 @@ out:
     return rc;
 }
 
+static int
+msp_bat(int fd, struct msp_bat *bat)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_BAT, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_BAT, bat, sizeof(*bat));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_bat(int fd)
+{
+    struct msp_bat bat;
+    int rc;
+
+    rc = msp_bat(fd, &bat);
+    if (rc) {
+        perror("msp_bat");
+        goto out;
+    }
+
+    printf("bat.vbat: %u\n", bat.vbat);
+    printf("bat.powermetersum: %u\n", bat.powermetersum);
+out:
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -804,6 +836,7 @@ msp_usage(FILE *s, const char *prog)
             "  acc-calibration -- calibrate accelerometer\n"
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
+            "  bat -- read battery status\n"
             "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify controller firmware\n"
             "  mag-calibration -- calibrate magnetometer\n"
@@ -886,6 +919,13 @@ main(int argc, char **argv)
             }
             if (!strcmp(cmd, "attitude")) {
                 rc = msp_cmd_attitude(fd);
+                optind++;
+                break;
+            }
+            goto invalid;
+        case 'b':
+            if (!strcmp(cmd, "bat")) {
+                rc = msp_cmd_bat(fd);
                 optind++;
                 break;
             }
