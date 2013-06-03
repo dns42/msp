@@ -141,7 +141,7 @@ msp_msg_checksum(uint8_t cks, const void *data, char len)
 }
 
 static int
-msp_req_send(int fd, char cmd, const void *data, char len)
+msp_req_send(int fd, msp_cmd_t cmd, const void *data, msp_len_t len)
 {
     struct msp_hdr hdr;
     int rc;
@@ -171,7 +171,7 @@ msp_req_send(int fd, char cmd, const void *data, char len)
 }
 
 static int
-msp_rsp_recv(int fd, char cmd, void *data, char len)
+msp_rsp_recv(int fd, msp_cmd_t cmd, void *data, msp_len_t len)
 {
     struct msp_hdr hdr;
     uint8_t cks;

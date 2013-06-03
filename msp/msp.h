@@ -12,11 +12,14 @@
  */
 #define MSP_VERSION             0
 
+typedef uint8_t msp_len_t;
+typedef uint8_t msp_cmd_t;
+
 struct msp_hdr {
-    uint8_t tag[2]; /* '$' 'M' */
-    uint8_t dsc;    /* '>': req, '<': rsp, '!': err */
-    uint8_t len;
-    uint8_t cmd;
+    char tag[2]; /* '$' 'M' */
+    char dsc;    /* '>': req, '<': rsp, '!': err */
+    msp_len_t len;
+    msp_cmd_t cmd;
 } PACKED;
 
 /*
