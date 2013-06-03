@@ -650,28 +650,28 @@ main(int argc, char **argv)
                 optind++;
                 break;
             }
-            break;
+            goto invalid;
         case 'e':
             if (!strcmp(cmd, "eeprom-write")) {
                 rc = msp_cmd_eeprom_write(fd);
                 optind++;
                 break;
             }
-            break;
+            goto invalid;
         case 'i':
             if (!strcmp(cmd, "ident")) {
                 rc = msp_cmd_ident(fd);
                 optind++;
                 break;
             }
-            break;
+            goto invalid;
         case 'm':
             if (!strcmp(cmd, "mag-calibration")) {
                 rc = msp_cmd_mag_calibration(fd);
                 optind++;
                 break;
             }
-            break;
+            goto invalid;
         case 'r':
             if (!strcmp(cmd, "raw-imu")) {
                 rc = msp_cmd_raw_imu(fd);
@@ -683,8 +683,8 @@ main(int argc, char **argv)
                 optind++;
                 break;
             }
-            break;
         default:
+        invalid:
             rc = -1;
             goto usage;
         }
