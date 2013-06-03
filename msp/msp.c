@@ -295,14 +295,29 @@ msp_multitype_name(enum msp_multitype type)
         return "vtail4";
     }
 
-    return "ufo";
+    return "?";
+}
+
+static const char *
+msp_ident_capability_name(int val)
+{
+    switch (val) {
+    case MSP_IDENT_CAP_BIND:
+        return "bind";
+    case MSP_IDENT_CAP_DYNBAL:
+        return "dynbal";
+    case MSP_IDENT_CAP_FLAP:
+        return "flap";
+    }
+
+    return "?";
 }
 
 static int
 msp_cmd_ident(int fd)
 {
     struct msp_ident ident;
-    int rc;
+    int rc, bit;
 
     rc = msp_ident(fd, &ident);
     if (rc) {
@@ -321,8 +336,13 @@ msp_cmd_ident(int fd)
     printf("ident.mspversion: %u\n",
            ident.mspversion);
 
-    printf("ident.capabilities: %x\n",
-           ident.capabilities);
+    printf("ident.capabilities: %#x%s",
+           ident.capabilities, ident.capabilities ? " (" : "\n");
+    for_each_bit(bit, &ident.capabilities)
+        printf("%s%s",
+               msp_ident_capability_name(bit),
+               bit == ident.capabilities ? ")\n" : ", ");
+
 out:
     return rc;
 }

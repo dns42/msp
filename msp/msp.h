@@ -58,9 +58,9 @@ enum msp_multitype {
     MSP_MULTITYPE_VTAIL4 = 17,
 };
 
-#define MSP_CAP_BIND    (1<<0)
-#define MSP_CAP_DYNBAL  (1<<2)
-#define MSP_CAP_FLAP    (1<<3)
+#define MSP_IDENT_CAP_BIND    (1<<0)
+#define MSP_IDENT_CAP_DYNBAL  (1<<2)
+#define MSP_IDENT_CAP_FLAP    (1<<3)
 
 /*
  * get

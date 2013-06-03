@@ -44,6 +44,12 @@
 #define array_size(_a)                  \
     (sizeof(_a) / sizeof(_a[0]))
 
+#define for_each_bit(_bit, _bits)                               \
+    for (;                                                      \
+         (_bit) = ffs(*(_bits)),                                \
+             (_bit) = (_bit) ? (1<<((_bit)-1)) : 0;             \
+         *(_bits) &= ~(_bit))
+
 #endif
 
 /*
