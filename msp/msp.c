@@ -607,6 +607,13 @@ msp_status(int fd, struct msp_status *st)
         goto out;
 
     rc = msp_rsp_recv(fd, MSP_STATUS, st, sizeof(*st));
+    if (rc)
+        goto out;
+
+    st->cycle_time = avrtoh(st->cycle_time);
+    st->i2c_errcnt = avrtoh(st->i2c_errcnt);
+    st->hwcaps = avrtoh(st->hwcaps);;
+    st->box = avrtoh(st->box);
 out:
     return rc;
 }
