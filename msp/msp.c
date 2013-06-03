@@ -924,7 +924,7 @@ main(int argc, char **argv)
     do {
         int c;
 
-        c = getopt(argc, argv, "T:b:Vh");
+        c = getopt(argc, argv, "+T:b:Vh");
         if (c < 0)
             break;
 
@@ -961,99 +961,93 @@ main(int argc, char **argv)
         goto out;
     }
 
-    while (optind != argc) {
+    for (; optind < argc; optind++) {
         const char *cmd;
 
         cmd = argv[optind];
+
         switch (cmd[0]) {
         case 'a':
             if (!strcmp(cmd, "acc-calibration")) {
                 rc = msp_cmd_acc_calibration(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "altitude")) {
                 rc = msp_cmd_altitude(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "attitude")) {
                 rc = msp_cmd_attitude(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 'b':
             if (!strcmp(cmd, "bat")) {
                 rc = msp_cmd_bat(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 'e':
             if (!strcmp(cmd, "eeprom-write")) {
                 rc = msp_cmd_eeprom_write(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 'i':
             if (!strcmp(cmd, "ident")) {
                 rc = msp_cmd_ident(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 'm':
             if (!strcmp(cmd, "mag-calibration")) {
                 rc = msp_cmd_mag_calibration(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "motor")) {
                 rc = msp_cmd_motor(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "motor-pins")) {
                 rc = msp_cmd_motor_pins(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 'r':
             if (!strcmp(cmd, "raw-imu")) {
                 rc = msp_cmd_raw_imu(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "rc")) {
                 rc = msp_cmd_rc(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "reset-conf")) {
                 rc = msp_cmd_reset_conf(fd);
-                optind++;
                 break;
             }
             goto invalid;
         case 's':
             if (!strcmp(cmd, "servo")) {
                 rc = msp_cmd_servo(fd);
-                optind++;
                 break;
             }
             if (!strcmp(cmd, "status")) {
                 rc = msp_cmd_status(fd);
-                optind++;
                 break;
             }
+            goto invalid;
+        case '-':
+            if (!strcmp(cmd, "--"))
+                break;
         default:
         invalid:
             rc = -1;
             goto usage;
         }
+
+        if (rc < 0)
+            break;
     }
 
 out:
