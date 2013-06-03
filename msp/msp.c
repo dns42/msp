@@ -530,6 +530,32 @@ msp_cmd_eeprom_write(int fd)
     return rc;
 }
 
+static int
+msp_reset_conf(int fd)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_RESET_CONF, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_RESET_CONF, NULL, 0);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_reset_conf(int fd)
+{
+    int rc;
+
+    rc = msp_reset_conf(fd);
+
+    printf("reset_conf: %s\n", rc ? "err" : "ok");
+
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -546,7 +572,8 @@ msp_usage(FILE *s, const char *prog)
             "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify firmware / revision\n"
             "  mag-calibration -- calibrate magnetometer\n"
-            "  raw-imu -- read raw IMU data\n");
+            "  raw-imu -- read raw IMU data\n"
+            "  reset-conf -- reset params to firmware defaults\n");
     fprintf(s,
             "\n");
 }
@@ -649,6 +676,11 @@ main(int argc, char **argv)
         case 'r':
             if (!strcmp(cmd, "raw-imu")) {
                 rc = msp_cmd_raw_imu(fd);
+                optind++;
+                break;
+            }
+            if (!strcmp(cmd, "reset-conf")) {
+                rc = msp_cmd_reset_conf(fd);
                 optind++;
                 break;
             }
