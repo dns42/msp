@@ -760,6 +760,38 @@ out:
 }
 
 static int
+msp_motor_pins(int fd, struct msp_motor_pins *pins)
+{
+    int rc;
+
+    rc = msp_req_send(fd, MSP_MOTOR_PINS, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(fd, MSP_MOTOR_PINS, pins, sizeof(*pins));
+out:
+    return rc;
+}
+
+static int
+msp_cmd_motor_pins(int fd)
+{
+    struct msp_motor_pins pins;
+    int rc, i;
+
+    rc = msp_motor_pins(fd, &pins);
+    if (rc) {
+        perror("msp_motor_pins");
+        goto out;
+    }
+
+    for (i = 0; i < array_size(pins.pin); i++)
+        printf("motor-pins.pin[%d]: %u\n", i, pins.pin[i]);
+out:
+    return rc;
+}
+
+static int
 msp_rc(int fd, struct msp_rc *mrc)
 {
     int rc;
@@ -841,6 +873,7 @@ msp_usage(FILE *s, const char *prog)
             "  ident -- identify controller firmware\n"
             "  mag-calibration -- calibrate magnetometer\n"
             "  motor -- read motor control\n"
+            "  motor-pins -- read motor pin numbers\n"
             "  raw-imu -- read raw IMU data\n"
             "  rc -- read RC controls\n"
             "  reset-conf -- reset params to firmware defaults\n"
@@ -952,6 +985,11 @@ main(int argc, char **argv)
             }
             if (!strcmp(cmd, "motor")) {
                 rc = msp_cmd_motor(fd);
+                optind++;
+                break;
+            }
+            if (!strcmp(cmd, "motor-pins")) {
+                rc = msp_cmd_motor_pins(fd);
                 optind++;
                 break;
             }

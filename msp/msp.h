@@ -222,9 +222,14 @@ struct msp_bat {
 #define MSP_MISC                114
 
 /*
- *
+ * get
+ *   motor pins
  */
-#define MSP_MOTOR_PINS          115		//out message		which pins are in use for motors & servos, for GUI 
+#define MSP_MOTOR_PINS          115
+
+struct msp_motor_pins {
+    uint8_t pin[8];
+};
 
 /*
  *
