@@ -747,13 +747,18 @@ out:
 static int
 msp_motor(int fd, struct msp_motor *motor)
 {
-    int rc;
+    int rc, i;
 
     rc = msp_req_send(fd, MSP_MOTOR, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(fd, MSP_MOTOR, motor, sizeof(*motor));
+    if (rc)
+        goto out;
+
+    for (i = 0; i < array_size(motor->ctl); i++)
+        motor->ctl[i] = avrtoh(motor->ctl[i]);
 out:
     return rc;
 }
