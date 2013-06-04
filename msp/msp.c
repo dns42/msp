@@ -118,7 +118,6 @@ msp_call_init(struct msp *msp, msp_cmd_t cmd,
               const struct timeval *timeo)
 {
     struct msp_call *call;
-    struct timeval _timeo;
     int rc;
 
     call = msp_call_get(msp, cmd);
@@ -138,10 +137,7 @@ msp_call_init(struct msp *msp, msp_cmd_t cmd,
     call->rfn = rfn;
     call->priv = priv;
 
-    gettimeofday(&_timeo, NULL);
-    timeradd(&_timeo, timeo, &_timeo);
-
-    call->timer = evtloop_create_timer(msp->loop, &_timeo,
+    call->timer = evtloop_create_timer(msp->loop,
                                        __msp_call_timeo,
                                        msp_call_entry(msp, cmd));
 
@@ -150,11 +146,15 @@ msp_call_init(struct msp *msp, msp_cmd_t cmd,
         goto out;
 
     msp_call_set(msp, cmd, call);
+
 out:
     if (rc && call) {
         __msp_call_destroy(call);
         call = NULL;
     }
+
+    if (call)
+        timer_start(call->timer, timeo);
 
     return call;
 }

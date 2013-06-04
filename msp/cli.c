@@ -8,6 +8,7 @@
 #include <msp/defs.h>
 
 #include <crt/defs.h>
+#include <crt/log.h>
 #include <crt/tty.h>
 
 #include <stdlib.h>

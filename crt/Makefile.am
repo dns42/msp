@@ -3,6 +3,7 @@ AM_CFLAGS  = -Wmissing-prototypes
 AM_CFLAGS += -Wno-format-zero-length
 
 AM_CPPFLAGS  = -I$(top_srcdir)
+AM_CPPFLAGS += -I$(top_builddir)
 
 noinst_LTLIBRARIES  = libcrt.la
 

@@ -6,7 +6,7 @@ AC_INIT([mwrt], [0.1], [daniel.stodden@gmail.com])
 AC_CONFIG_SRCDIR([msp/msp.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall foreign])
+AM_INIT_AUTOMAKE([-Wall -Wno-portability foreign nostdinc])
 
 # Checks for programs.
 AC_LANG_WERROR
@@ -14,8 +14,19 @@ AC_PROG_CC
 AM_PROG_AR
 AC_PROG_RANLIB
 
+AC_PATH_PROGS([LUAC], [luac5.1])
+AS_IF([test "x$LUAC" = x],
+      [AC_MSG_ERROR([Missing Lua 5.1 compiler])])
+AC_SUBST([LUAC])
+
+AC_CHECK_TOOL([OBJCOPY], [objcopy])
+AS_IF([test "x$OBJCOPY" = x],
+      [AC_MSG_ERROR([Missing host objcopy])])
+AC_SUBST([OBJCOPY])
+
 # Checks for libraries.
 LT_INIT
+PKG_CHECK_MODULES([LUA], [lua5.1])
 
 # Checks for header files.
 AC_CHECK_HEADERS([dnl
@@ -56,6 +67,7 @@ strtol dnl
 strtoul dnl
 strerror dnl
 select dnl
+socket dns
 ])
 AC_FUNC_MALLOC
 AC_FUNC_ALLOCA
@@ -65,4 +77,7 @@ AC_OUTPUT([
 Makefile
 crt/Makefile
 msp/Makefile
+nrx/Makefile
+ntx/Makefile
+mcc/Makefile
 ])

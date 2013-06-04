@@ -1,5 +1,6 @@
 
 SUBDIRS  = crt
 SUBDIRS += msp
+SUBDIRS += mcc
 
 ACLOCAL_AMFLAGS = -I m4

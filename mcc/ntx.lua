@@ -1,0 +1,2 @@
+
+NetTX = Object:extend {}

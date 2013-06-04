@@ -4,7 +4,8 @@
 
 #include <msp/msg-internal.h>
 #include <msp/defs.h>
-#include <crt/defs.h>
+
+#include <crt/log.h>
 
 static int
 msp_ident_rsp_dec(const struct msp_hdr *hdr, void *data)

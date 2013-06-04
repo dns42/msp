@@ -6,6 +6,7 @@
 #include <msp/msp-internal.h>
 
 #include <crt/defs.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <string.h>

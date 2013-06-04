@@ -97,7 +97,7 @@ void
 log_vprintf(const struct log_hdr *hdr, const char *fmt, va_list ap)
 {
     struct log_target *log;
-    char buf[80];
+    char buf[128];
 
     log = log_target;
 
@@ -112,8 +112,15 @@ log_vprintf(const struct log_hdr *hdr, const char *fmt, va_list ap)
 
         if (n < sizeof(buf))
             n += snprintf(buf + n, sizeof(buf) - n,
-                          "%lu.%06lu:%c:%s:", t.tv_sec, t.tv_usec,
-                          log_prio[hdr->prio], hdr->func);
+                          "%lu.%06lu:", t.tv_sec, t.tv_usec);
+
+        if (n < sizeof(buf))
+            n += snprintf(buf + n, sizeof(buf) - n,
+                          "%c:", log_prio[hdr->prio]);
+
+        if (n < sizeof(buf))
+            n += snprintf(buf + n, sizeof(buf) - n,
+                          "%s:", hdr->func);
 
         if (n < sizeof(buf))
             n += vsnprintf(buf + n, sizeof(buf) - n, fmt, ap);

@@ -10,12 +10,7 @@ void evtloop_destroy(struct evtloop *main);
 
 int evtloop_iterate(struct evtloop *main);
 
-void evtloop_add_timer(struct evtloop *loop,
-                       struct timer *timer,
-                       const struct timeval *timeo);
-
 struct timer * evtloop_create_timer(struct evtloop *loop,
-                                    const struct timeval *timeo,
                                     timer_fn fn, void *data);
 
 typedef void (*pollevt_fn)(int revents, void *data);

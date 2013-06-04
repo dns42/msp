@@ -41,12 +41,39 @@ void log_printf(const struct log_hdr *hdr, const char *fmt, ...)
 #define debug(_fmt, _args ...)                          \
     log_printf(&LOG_HDR(LOG_DEBUG), _fmt, ##_args)
 
+#define warn(_fmt, _args ...)                           \
+    log_printf(&LOG_HDR(LOG_WARNING), _fmt, ##_args)
+
 #define log_perror(_fmt, _args ...)                     \
     do {                                                \
         int __err = errno;                              \
         error(_fmt ": %s", ##_args, strerror(errno));   \
         errno = __err;                                  \
     } while (0)
+
+#define expected(_cond)                                             \
+    ({                                                              \
+        typeof(_cond) __cond = (_cond);                             \
+        if (likely(__cond)) {                                       \
+            int err = errno;                                        \
+            warn("expected cond '%s' false at %s:%d",               \
+                 #_cond, __FILE__, __LINE__);                       \
+            errno = err;                                            \
+        }                                                           \
+        __cond;                                                     \
+    })
+
+#define unexpected(_cond)                                           \
+    ({                                                              \
+        typeof(_cond) __cond = (_cond);                             \
+        if (unlikely(__cond)) {                                     \
+            int err = errno;                                        \
+            warn("unexpected cond '%s' true at %s:%d",              \
+                 #_cond, __FILE__, __LINE__);                       \
+            errno = err;                                            \
+        }                                                           \
+        __cond;                                                     \
+    })
 
 #endif
 

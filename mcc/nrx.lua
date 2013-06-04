@@ -1,0 +1,2 @@
+
+NetRX = Object:extend {}

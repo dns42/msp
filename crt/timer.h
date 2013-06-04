@@ -2,11 +2,24 @@
 #define CRT_TIMER_H
 
 #include <sys/time.h>
-struct evtloop;
+
+struct timer;
+struct timerwheel;
 
 typedef void (*timer_fn)(const struct timeval *timeo, void *data);
 
-struct timer *__timer_create(timer_fn fn, void *priv);
+struct timer *__timer_create(timer_fn fn, void *priv,
+                             struct timerwheel *wheel);
+
+void timer_start(struct timer *timer,
+                 const struct timeval *interval);
+
+void timer_restart(struct timer *timer,
+                   const struct timeval *now,
+                   const struct timeval *interval);
+
+void timer_start_at(struct timer *timer,
+                    const struct timeval *timeo);
 
 void timer_stop(struct timer *timer);
 

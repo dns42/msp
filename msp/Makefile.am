@@ -4,6 +4,7 @@ AM_CFLAGS += -Werror
 AM_CFLAGS += -Wmissing-prototypes
 
 AM_CPPFLAGS  = -I$(top_srcdir)
+AM_CPPFLAGS += -I$(top_builddir)
 
 lib_LTLIBRARIES  = libmsp.la
 
@@ -21,6 +22,7 @@ libmsp_includedir = $(includedir)/msp
 libmsp_include_HEADERS  = msg.h
 libmsp_include_HEADERS += msp.h
 libmsp_include_HEADERS += str.h
+libmsp_include_HEADERS += dispatch.h
 
 bin_PROGRAMS  = msp
 

@@ -5,6 +5,7 @@
 #include <crt/evtloop-internal.h>
 #include <crt/timer-internal.h>
 #include <crt/defs.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <assert.h>
@@ -57,25 +58,11 @@ pollevt_select(struct pollevt *evt, short events)
     evt->events = events;
 }
 
-void
-evtloop_add_timer(struct evtloop *loop,
-                  struct timer *timer, const struct timeval *timeo)
-{
-    timerwheel_insert(loop->timers, timer, timeo);
-}
-
 struct timer *
 evtloop_create_timer(struct evtloop *loop,
-                     const struct timeval *timeo,
                      timer_fn fn, void *data)
 {
-    struct timer *timer;
-
-    timer = __timer_create(fn, data);
-    if (timer)
-        evtloop_add_timer(loop, timer, timeo);
-
-    return timer;
+    return __timer_create(fn, data, loop->timers);
 }
 
 struct pollevt *

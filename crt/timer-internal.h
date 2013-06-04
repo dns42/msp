@@ -6,10 +6,10 @@
 #include <sys/time.h>
 
 struct timer {
-    struct timeval timeo;
     timer_fn fn;
     void *data;
-    struct evtloop *loop;
+    struct timerwheel *wheel;
+    struct timeval timeo;
     struct list entry;
 };
 
@@ -21,8 +21,7 @@ struct timerwheel *timerwheel_create(void);
 
 void timerwheel_destroy(struct timerwheel *wheel);
 
-void timerwheel_insert(struct timerwheel *wheel, struct timer *timer,
-                       const struct timeval *timeo);
+void timerwheel_insert(struct timerwheel *wheel, struct timer *timer);
 
 void timerwheel_run(struct timerwheel *wheel, struct timeval *now);
 

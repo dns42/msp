@@ -3,12 +3,14 @@
 #endif
 
 #include <crt/timer-internal.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <assert.h>
 
 struct timer *
-__timer_create(timer_fn fn, void *data)
+__timer_create(timer_fn fn, void *data,
+               struct timerwheel *wheel)
 {
     struct timer *timer;
 
@@ -28,6 +30,38 @@ timer_destroy(struct timer *timer)
 {
     timer_stop(timer);
     free(timer);
+}
+
+void
+timer_start(struct timer *timer, const struct timeval *interval)
+{
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+
+    timer_restart(timer, &now, interval);
+}
+
+void
+timer_restart(struct timer *timer,
+              const struct timeval *now,
+              const struct timeval *interval)
+{
+    struct timeval timeo;
+
+    timeradd(now, interval, &timeo);
+
+    timer_start_at(timer, &timeo);
+}
+
+void
+timer_start_at(struct timer *timer, const struct timeval *timeo)
+{
+    timer_stop(timer);
+
+    timer->timeo = *timeo;
+
+    timerwheel_insert(timer->wheel, timer);
 }
 
 void
@@ -63,14 +97,11 @@ timerwheel_destroy(struct timerwheel *wheel)
 }
 
 void
-timerwheel_insert(struct timerwheel *wheel, struct timer *timer,
-                  const struct timeval *timeo)
+timerwheel_insert(struct timerwheel *wheel, struct timer *timer)
 {
     struct timer *next;
 
     timer_stop(timer);
-
-    timer->timeo = *timeo;
 
     list_for_each_entry(&wheel->list, next, entry)
         if (timercmp(&next->timeo, &timer->timeo, >)) {
