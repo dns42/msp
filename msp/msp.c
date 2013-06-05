@@ -371,8 +371,8 @@ msp_raw_imu(int fd, struct msp_raw_imu *imu)
     for (i = 0; i < array_size(imu->gyr); i++)
         imu->gyr[i] = avrtoh(imu->gyr[i]);
 
-    for (i = 0; i < array_size(imu->adc); i++)
-        imu->adc[i] = avrtoh(imu->adc[i]);
+    for (i = 0; i < array_size(imu->mag); i++)
+        imu->mag[i] = avrtoh(imu->mag[i]);
 out:
     return rc;
 }
@@ -395,8 +395,8 @@ msp_cmd_raw_imu(int fd)
     for (i = 0; i < array_size(imu.gyr); i++)
         printf("raw-imu.gyr[%d]: %d\n", i, imu.gyr[i]);
 
-    for (i = 0; i < array_size(imu.adc); i++)
-        printf("raw-imu.adc[%d]: %d\n", i, imu.adc[i]);
+    for (i = 0; i < array_size(imu.mag); i++)
+        printf("raw-imu.mag[%d]: %d\n", i, imu.mag[i]);
 
 out:
     return rc;

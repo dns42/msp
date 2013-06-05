@@ -109,7 +109,7 @@ struct msp_status {
 struct msp_raw_imu {
     int16_t acc[3];
     int16_t gyr[3];
-    int16_t adc[3];
+    int16_t mag[3];
 };
 
 /*
