@@ -15,5 +15,6 @@ missing
 stamp-h1
 .deps/
 msp-*.tar.gz
+cscope.*
 *.o
 *~
