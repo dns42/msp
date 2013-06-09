@@ -4,6 +4,7 @@
 
 #include <msp/msp.h>
 #include <msp/defs.h>
+#include <crt/tty.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -15,123 +16,57 @@
 #include <libgen.h>
 
 struct msp {
-    int tty;
+    struct tty *tty;
+    struct evtloop *loop;
 };
 
 #define MSP_TIMEOUT (struct timeval) { 1, 0 }
 
 static int
-msp_tty_open(const char *path, speed_t speed)
-{
-    int rc, fd;
-    struct termios tio;
-
-    rc = -1;
-
-    fd = open(path, O_RDWR|O_NOCTTY|O_NDELAY);
-    if (fd < 0)
-        goto out;
-
-    memset(&tio, 0, sizeof(tio));
-
-    tio.c_iflag = 0;
-    tio.c_cflag = CREAD|CLOCAL|CS8;
-
-    tio.c_cc[VMIN] = 1;
-    tio.c_cc[VTIME] = 10;
-
-    cfsetospeed(&tio, speed);
-    cfsetispeed(&tio, speed);
-
-    rc = tcsetattr(fd, TCSANOW, &tio);
-    if (rc)
-        goto out;
-
-    rc = fd;
-out:
-    if (rc < 0) {
-        if (fd >= 0)
-            close(fd);
-    }
-
-    return rc;
-}
-
-static int
-msp_tty_send(int fd, const void *buf, size_t len)
-{
-    int rc;
-    ssize_t n;
-
-    rc = -1;
-
-    do {
-        n = write(fd, buf, len);
-        if (n < 0)
-            goto out;
-
-        buf = (char *)buf + n;
-        len -= n;
-    } while (len > 0);
-
-    rc = tcdrain(fd);
-out:
-    return rc;
-}
-
-static int
 msp_tty_recv(struct msp *msp,
              void *buf, size_t len, struct timeval timeo)
 {
-    int rc, nfds;
-    fd_set rfds;
+    struct timerevt *timer;
     ssize_t n;
+    int rc;
 
     rc = -1;
 
-    FD_ZERO(&rfds);
-    FD_SET(msp->tty, &rfds);
+    tty_setrxbuf(msp->tty, buf, len);
+
+    timer = evtloop_add_timer(msp->loop, timeo, NULL, NULL);
 
     do {
-        nfds = select(msp->tty + 1, &rfds, NULL, NULL, &timeo);
-        if (nfds < 0)
+        rc = evtloop_iterate(msp->loop);
+        if (rc < 0) {
+            perror("evtloop_iterate");
             goto out;
+        }
 
-        if (!nfds) {
+        if (!rc) {
+            rc = -1;
             errno = ETIMEDOUT;
             goto out;
         }
 
-        n = read(msp->tty, buf, len);
-        if (n < 0)
+        n = tty_rxcnt(msp->tty);
+        if (n < 0) {
+            perror("tty_rxcnt");
             goto out;
-
-        buf = (char *)buf + n;
-        len -= n;
-    } while (len > 0);
+        }
+    } while (n < len);
 
     rc = 0;
 out:
-    return rc;
-}
+    if (timer) {
+        int err = errno;
 
-static speed_t
-msp_tty_speed(int arg)
-{
-    switch (arg) {
-    case 115200:
-        return B115200;
-    case 57600:
-        return B57600;
-    case 38400:
-        return B38400;
-    case 19200:
-        return B19200;
-    case 9600:
-        return B9600;
+        timerevt_destroy(timer);
+
+        errno = err;
     }
 
-    return -1;
+    return rc;
 }
 
 static uint8_t
@@ -159,32 +94,31 @@ msp_msg_checksum(const struct msp_hdr *hdr, const void *data)
 
 static int
 msp_req_send(struct msp *msp,
-             msp_cmd_t cmd, const void *data, msp_len_t len)
+             msp_cmd_t cmd, const void *data, size_t len)
 {
     struct msp_hdr hdr;
-    int rc;
+    struct iovec iov[3];
+    uint8_t cks;
+    int cnt;
 
+    cnt = 0;
     hdr = MSP_REQ_HDR(cmd, len);
 
-    rc = msp_tty_send(msp->tty, &hdr, sizeof(hdr));
+    iov[cnt++] = (struct iovec) { &hdr, sizeof(hdr) };
 
-    if (!rc && len)
-        rc = msp_tty_send(msp->tty, data, len);
+    if (len)
+        iov[cnt++] = (struct iovec) { (void*)data, len };
 
-    if (!rc) {
-        uint8_t cks;
+    cks = msp_msg_checksum(&hdr, data);
 
-        cks = msp_msg_checksum(&hdr, data);
+    iov[cnt++] = (struct iovec) { &cks, sizeof(cks) };
 
-        rc = msp_tty_send(msp->tty, &cks, 1);
-    }
-
-    return rc;
+    return tty_sendv(msp->tty, iov, cnt);
 }
 
 static int
 msp_rsp_recv(struct msp *msp,
-             msp_cmd_t cmd, void *data, msp_len_t len)
+             msp_cmd_t cmd, void *data, size_t len)
 {
     struct msp_hdr hdr;
     uint8_t cks;
@@ -227,7 +161,7 @@ msp_rsp_recv(struct msp *msp,
 out:
     if (rc && hdr.dsc)
         fprintf(stderr,
-                "rsp %c%c%c len %u/%d cmd %u/%u cks %02x\n",
+                "rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
                 hdr.tag[0], hdr.tag[1], hdr.dsc,
                 hdr.len, len, hdr.cmd, cmd, cks);
 
@@ -1030,7 +964,7 @@ main(int argc, char **argv)
             break;
 
         case 'b':
-            speed = msp_tty_speed(atoi(optarg));
+            speed = tty_speed(atoi(optarg));
             if (speed == -1)
                 goto usage;
             break;
@@ -1057,9 +991,21 @@ main(int argc, char **argv)
         goto out;
     }
 
-    msp->tty = msp_tty_open(ttypath, speed);
-    if (msp->tty < 0) {
+    msp->tty = tty_open(ttypath, speed);
+    if (!msp->tty) {
         perror(ttypath);
+        goto out;
+    }
+
+    msp->loop = evtloop_create();
+    if (!msp->loop) {
+        perror("evtloop_create");
+        goto out;
+    }
+
+    rc = tty_plug(msp->tty, msp->loop);
+    if (rc) {
+        perror("tty_register_events");
         goto out;
     }
 
