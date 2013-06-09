@@ -10,4 +10,7 @@ libcrt_la_SOURCES += list.h
 libcrt_la_SOURCES += evtloop.c
 libcrt_la_SOURCES += evtloop.h
 libcrt_la_SOURCES += evtloop-internal.h
+libcrt_la_SOURCES += tty.c
+libcrt_la_SOURCES += tty.h
+libcrt_la_SOURCES += tty-internal.h
 
