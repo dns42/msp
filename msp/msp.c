@@ -14,6 +14,10 @@
 #include <termios.h>
 #include <libgen.h>
 
+struct msp {
+    int tty;
+};
+
 #define MSP_TIMEOUT (struct timeval) { 1, 0 }
 
 static int
@@ -76,7 +80,8 @@ out:
 }
 
 static int
-msp_tty_recv(int fd, void *buf, size_t len, struct timeval timeo)
+msp_tty_recv(struct msp *msp,
+             void *buf, size_t len, struct timeval timeo)
 {
     int rc, nfds;
     fd_set rfds;
@@ -85,18 +90,19 @@ msp_tty_recv(int fd, void *buf, size_t len, struct timeval timeo)
     rc = -1;
 
     FD_ZERO(&rfds);
-    FD_SET(fd, &rfds);
+    FD_SET(msp->tty, &rfds);
 
     do {
-        nfds = select(fd + 1, &rfds, NULL, NULL, &timeo);
+        nfds = select(msp->tty + 1, &rfds, NULL, NULL, &timeo);
         if (nfds < 0)
             goto out;
+
         if (!nfds) {
             errno = ETIMEDOUT;
             goto out;
         }
 
-        n = read(fd, buf, len);
+        n = read(msp->tty, buf, len);
         if (n < 0)
             goto out;
 
@@ -152,7 +158,8 @@ msp_msg_checksum(const struct msp_hdr *hdr, const void *data)
 }
 
 static int
-msp_req_send(int fd, msp_cmd_t cmd, const void *data, msp_len_t len)
+msp_req_send(struct msp *msp,
+             msp_cmd_t cmd, const void *data, msp_len_t len)
 {
     struct msp_hdr hdr;
     int rc;
@@ -163,24 +170,25 @@ msp_req_send(int fd, msp_cmd_t cmd, const void *data, msp_len_t len)
     hdr.len = len;
     hdr.cmd = cmd;
 
-    rc = msp_tty_send(fd, &hdr, sizeof(hdr));
+    rc = msp_tty_send(msp->tty, &hdr, sizeof(hdr));
 
     if (!rc && len)
-        rc = msp_tty_send(fd, data, len);
+        rc = msp_tty_send(msp->tty, data, len);
 
     if (!rc) {
         uint8_t cks;
 
         cks = msp_msg_checksum(&hdr, data);
 
-        rc = msp_tty_send(fd, &cks, 1);
+        rc = msp_tty_send(msp->tty, &cks, 1);
     }
 
     return rc;
 }
 
 static int
-msp_rsp_recv(int fd, msp_cmd_t cmd, void *data, msp_len_t len)
+msp_rsp_recv(struct msp *msp,
+             msp_cmd_t cmd, void *data, msp_len_t len)
 {
     struct msp_hdr hdr;
     uint8_t cks;
@@ -188,7 +196,7 @@ msp_rsp_recv(int fd, msp_cmd_t cmd, void *data, msp_len_t len)
 
     hdr.dsc = 0;
 
-    rc = msp_tty_recv(fd, &hdr, sizeof(hdr), MSP_TIMEOUT);
+    rc = msp_tty_recv(msp, &hdr, sizeof(hdr), MSP_TIMEOUT);
     if (rc)
         goto out;
 
@@ -210,11 +218,11 @@ msp_rsp_recv(int fd, msp_cmd_t cmd, void *data, msp_len_t len)
         goto out;
 
     rc = len
-        ? msp_tty_recv(fd, data, len, MSP_TIMEOUT)
+        ? msp_tty_recv(msp, data, len, MSP_TIMEOUT)
         : 0;
 
     if (!rc) {
-        rc = msp_tty_recv(fd, &cks, 1, MSP_TIMEOUT);
+        rc = msp_tty_recv(msp, &cks, 1, MSP_TIMEOUT);
 
         cks ^= msp_msg_checksum(&hdr, data);
 
@@ -231,15 +239,15 @@ out:
 }
 
 static int
-msp_ident(int fd, struct msp_ident *ident)
+msp_ident(struct msp *msp, struct msp_ident *ident)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_IDENT, NULL, 0);
+    rc = msp_req_send(msp, MSP_IDENT, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_IDENT, ident, sizeof(*ident));
+    rc = msp_rsp_recv(msp, MSP_IDENT, ident, sizeof(*ident));
 out:
     return rc;
 }
@@ -319,12 +327,12 @@ msp_ident_capability_name(int val)
 }
 
 static int
-msp_cmd_ident(int fd)
+msp_cmd_ident(struct msp *msp)
 {
     struct msp_ident ident;
     int rc, bit;
 
-    rc = msp_ident(fd, &ident);
+    rc = msp_ident(msp, &ident);
     if (rc) {
         perror("msp_ident");
         goto out;
@@ -353,15 +361,15 @@ out:
 }
 
 static int
-msp_raw_imu(int fd, struct msp_raw_imu *imu)
+msp_raw_imu(struct msp *msp, struct msp_raw_imu *imu)
 {
     int rc, i;
 
-    rc = msp_req_send(fd, MSP_RAW_IMU, NULL, 0);
+    rc = msp_req_send(msp, MSP_RAW_IMU, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_RAW_IMU, imu, sizeof(*imu));
+    rc = msp_rsp_recv(msp, MSP_RAW_IMU, imu, sizeof(*imu));
     if (rc)
         goto out;
 
@@ -378,12 +386,12 @@ out:
 }
 
 static int
-msp_cmd_raw_imu(int fd)
+msp_cmd_raw_imu(struct msp *msp)
 {
     struct msp_raw_imu imu;
     int rc, i;
 
-    rc = msp_raw_imu(fd, &imu);
+    rc = msp_raw_imu(msp, &imu);
     if (rc) {
         perror("msp_raw_imu");
         goto out;
@@ -403,16 +411,16 @@ out:
 }
 
 static int
-msp_altitude(int fd, int32_t *_alt)
+msp_altitude(struct msp *msp, int32_t *_alt)
 {
     int32_t alt;
     int rc;
 
-    rc = msp_req_send(fd, MSP_ALTITUDE, NULL, 0);
+    rc = msp_req_send(msp, MSP_ALTITUDE, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_ALTITUDE, &alt, sizeof(alt));
+    rc = msp_rsp_recv(msp, MSP_ALTITUDE, &alt, sizeof(alt));
     if (rc)
         goto out;
 
@@ -422,12 +430,12 @@ out:
 }
 
 static int
-msp_cmd_altitude(int fd)
+msp_cmd_altitude(struct msp *msp)
 {
     int32_t alt;
     int rc;
 
-    rc = msp_altitude(fd, &alt);
+    rc = msp_altitude(msp, &alt);
     if (rc) {
         perror("msp_altitude");
         goto out;
@@ -439,15 +447,15 @@ out:
 }
 
 static int
-msp_attitude(int fd, struct msp_attitude *att)
+msp_attitude(struct msp *msp, struct msp_attitude *att)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_ATTITUDE, NULL, 0);
+    rc = msp_req_send(msp, MSP_ATTITUDE, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_ATTITUDE, att, sizeof(*att));
+    rc = msp_rsp_recv(msp, MSP_ATTITUDE, att, sizeof(*att));
     if (rc)
         goto out;
 
@@ -460,12 +468,12 @@ out:
 }
 
 static int
-msp_cmd_attitude(int fd)
+msp_cmd_attitude(struct msp *msp)
 {
     struct msp_attitude att;
     int rc;
 
-    rc = msp_attitude(fd, &att);
+    rc = msp_attitude(msp, &att);
     if (rc) {
         perror("msp_attitude");
         goto out;
@@ -483,25 +491,25 @@ out:
 }
 
 static int
-msp_mag_calibration(int fd)
+msp_mag_calibration(struct msp *msp)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_MAG_CALIBRATION, NULL, 0);
+    rc = msp_req_send(msp, MSP_MAG_CALIBRATION, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_MAG_CALIBRATION, NULL, 0);
+    rc = msp_rsp_recv(msp, MSP_MAG_CALIBRATION, NULL, 0);
 out:
     return rc;
 }
 
 static int
-msp_cmd_mag_calibration(int fd)
+msp_cmd_mag_calibration(struct msp *msp)
 {
     int rc;
 
-    rc = msp_mag_calibration(fd);
+    rc = msp_mag_calibration(msp);
     if (rc) {
         perror("msp_mag_calibration");
         goto out;
@@ -513,25 +521,25 @@ out:
 }
 
 static int
-msp_acc_calibration(int fd)
+msp_acc_calibration(struct msp *msp)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_ACC_CALIBRATION, NULL, 0);
+    rc = msp_req_send(msp, MSP_ACC_CALIBRATION, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_ACC_CALIBRATION, NULL, 0);
+    rc = msp_rsp_recv(msp, MSP_ACC_CALIBRATION, NULL, 0);
 out:
     return rc;
 }
 
 static int
-msp_cmd_acc_calibration(int fd)
+msp_cmd_acc_calibration(struct msp *msp)
 {
     int rc;
 
-    rc = msp_acc_calibration(fd);
+    rc = msp_acc_calibration(msp);
     if (rc) {
         perror("msp_acc_calibration");
         goto out;
@@ -543,25 +551,25 @@ out:
 }
 
 static int
-msp_eeprom_write(int fd)
+msp_eeprom_write(struct msp *msp)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_EEPROM_WRITE, NULL, 0);
+    rc = msp_req_send(msp, MSP_EEPROM_WRITE, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_EEPROM_WRITE, NULL, 0);
+    rc = msp_rsp_recv(msp, MSP_EEPROM_WRITE, NULL, 0);
 out:
     return rc;
 }
 
 static int
-msp_cmd_eeprom_write(int fd)
+msp_cmd_eeprom_write(struct msp *msp)
 {
     int rc;
 
-    rc = msp_eeprom_write(fd);
+    rc = msp_eeprom_write(msp);
     if (rc) {
         perror("msp_eeprom_write");
         goto out;
@@ -573,25 +581,25 @@ out:
 }
 
 static int
-msp_reset_conf(int fd)
+msp_reset_conf(struct msp *msp)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_RESET_CONF, NULL, 0);
+    rc = msp_req_send(msp, MSP_RESET_CONF, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_RESET_CONF, NULL, 0);
+    rc = msp_rsp_recv(msp, MSP_RESET_CONF, NULL, 0);
 out:
     return rc;
 }
 
 static int
-msp_cmd_reset_conf(int fd)
+msp_cmd_reset_conf(struct msp *msp)
 {
     int rc;
 
-    rc = msp_reset_conf(fd);
+    rc = msp_reset_conf(msp);
     if (rc) {
         perror("msp_reset_conf");
         goto out;
@@ -603,15 +611,15 @@ out:
 }
 
 static int
-msp_status(int fd, struct msp_status *st)
+msp_status(struct msp *msp, struct msp_status *st)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_STATUS, NULL, 0);
+    rc = msp_req_send(msp, MSP_STATUS, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_STATUS, st, sizeof(*st));
+    rc = msp_rsp_recv(msp, MSP_STATUS, st, sizeof(*st));
     if (rc)
         goto out;
 
@@ -680,12 +688,12 @@ msp_status_box_name(int val)
 }
 
 static int
-msp_cmd_status(int fd)
+msp_cmd_status(struct msp *msp)
 {
     struct msp_status st;
     int rc, bit;
 
-    rc = msp_status(fd, &st);
+    rc = msp_status(msp, &st);
     if (rc) {
         perror("msp_status");
         goto out;
@@ -713,15 +721,15 @@ out:
 }
 
 static int
-msp_servo(int fd, struct msp_servo *servo)
+msp_servo(struct msp *msp, struct msp_servo *servo)
 {
     int rc, i;
 
-    rc = msp_req_send(fd, MSP_SERVO, NULL, 0);
+    rc = msp_req_send(msp, MSP_SERVO, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_SERVO, servo, sizeof(*servo));
+    rc = msp_rsp_recv(msp, MSP_SERVO, servo, sizeof(*servo));
     if (rc)
         goto out;
 
@@ -732,12 +740,12 @@ out:
 }
 
 static int
-msp_cmd_servo(int fd)
+msp_cmd_servo(struct msp *msp)
 {
     struct msp_servo servo;
     int rc, i;
 
-    rc = msp_servo(fd, &servo);
+    rc = msp_servo(msp, &servo);
     if (rc) {
         perror("msp_servo");
         goto out;
@@ -750,15 +758,15 @@ out:
 }
 
 static int
-msp_motor(int fd, struct msp_motor *motor)
+msp_motor(struct msp *msp, struct msp_motor *motor)
 {
     int rc, i;
 
-    rc = msp_req_send(fd, MSP_MOTOR, NULL, 0);
+    rc = msp_req_send(msp, MSP_MOTOR, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_MOTOR, motor, sizeof(*motor));
+    rc = msp_rsp_recv(msp, MSP_MOTOR, motor, sizeof(*motor));
     if (rc)
         goto out;
 
@@ -769,12 +777,12 @@ out:
 }
 
 static int
-msp_cmd_motor(int fd)
+msp_cmd_motor(struct msp *msp)
 {
     struct msp_motor motor;
     int rc, i;
 
-    rc = msp_motor(fd, &motor);
+    rc = msp_motor(msp, &motor);
     if (rc) {
         perror("msp_motor");
         goto out;
@@ -787,26 +795,26 @@ out:
 }
 
 static int
-msp_motor_pins(int fd, struct msp_motor_pins *pins)
+msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_MOTOR_PINS, NULL, 0);
+    rc = msp_req_send(msp, MSP_MOTOR_PINS, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_MOTOR_PINS, pins, sizeof(*pins));
+    rc = msp_rsp_recv(msp, MSP_MOTOR_PINS, pins, sizeof(*pins));
 out:
     return rc;
 }
 
 static int
-msp_cmd_motor_pins(int fd)
+msp_cmd_motor_pins(struct msp *msp)
 {
     struct msp_motor_pins pins;
     int rc, i;
 
-    rc = msp_motor_pins(fd, &pins);
+    rc = msp_motor_pins(msp, &pins);
     if (rc) {
         perror("msp_motor_pins");
         goto out;
@@ -819,15 +827,15 @@ out:
 }
 
 static int
-msp_rc(int fd, struct msp_raw_rc *rrc)
+msp_rc(struct msp *msp, struct msp_raw_rc *rrc)
 {
     int rc, i;
 
-    rc = msp_req_send(fd, MSP_RC, NULL, 0);
+    rc = msp_req_send(msp, MSP_RC, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_RC, rrc, sizeof(*rrc));
+    rc = msp_rsp_recv(msp, MSP_RC, rrc, sizeof(*rrc));
     if (rc)
         goto out;
 
@@ -863,12 +871,12 @@ msp_rc_chan_name(enum msp_rc_chn n)
 }
 
 static int
-msp_cmd_rc(int fd)
+msp_cmd_rc(struct msp *msp)
 {
     struct msp_raw_rc rrc;
     int rc, i;
 
-    rc = msp_rc(fd, &rrc);
+    rc = msp_rc(msp, &rrc);
     if (rc) {
         perror("msp_rrc");
         goto out;
@@ -883,21 +891,21 @@ out:
 }
 
 static int
-msp_set_raw_rc(int fd, const struct msp_raw_rc *rrc)
+msp_set_raw_rc(struct msp *msp, const struct msp_raw_rc *rrc)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_SET_RAW_RC, rrc, sizeof(*rrc));
+    rc = msp_req_send(msp, MSP_SET_RAW_RC, rrc, sizeof(*rrc));
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_SET_RAW_RC, NULL, 0);
+    rc = msp_rsp_recv(msp, MSP_SET_RAW_RC, NULL, 0);
 out:
     return rc;
 }
 
 static int
-msp_cmd_set_raw_rc(int fd, int argc, char **argv)
+msp_cmd_set_raw_rc(struct msp *msp, int argc, char **argv)
 {
     struct msp_raw_rc rrc;
     int rc;
@@ -929,7 +937,7 @@ msp_cmd_set_raw_rc(int fd, int argc, char **argv)
         rrc.chn[chn] = htoavr(val);
     }
 
-    rc = msp_set_raw_rc(fd, &rrc);
+    rc = msp_set_raw_rc(msp, &rrc);
     if (rc) {
         perror("msp_set_raw_rc");
         goto out;
@@ -941,26 +949,26 @@ out:
 }
 
 static int
-msp_bat(int fd, struct msp_bat *bat)
+msp_bat(struct msp *msp, struct msp_bat *bat)
 {
     int rc;
 
-    rc = msp_req_send(fd, MSP_BAT, NULL, 0);
+    rc = msp_req_send(msp, MSP_BAT, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(fd, MSP_BAT, bat, sizeof(*bat));
+    rc = msp_rsp_recv(msp, MSP_BAT, bat, sizeof(*bat));
 out:
     return rc;
 }
 
 static int
-msp_cmd_bat(int fd)
+msp_cmd_bat(struct msp *msp)
 {
     struct msp_bat bat;
     int rc;
 
-    rc = msp_bat(fd, &bat);
+    rc = msp_bat(msp, &bat);
     if (rc) {
         perror("msp_bat");
         goto out;
@@ -1004,6 +1012,7 @@ int
 main(int argc, char **argv)
 {
     const char *ttypath;
+    struct msp *msp;
     speed_t speed;
     int rc, fd;
 
@@ -1046,8 +1055,14 @@ main(int argc, char **argv)
     if (optind == argc)
         goto usage;
 
-    fd = msp_tty_open(ttypath, speed);
-    if (fd < 0) {
+    msp = calloc(1, sizeof(*msp));
+    if (!msp) {
+        perror("calloc");
+        goto out;
+    }
+
+    msp->tty = msp_tty_open(ttypath, speed);
+    if (msp->tty < 0) {
         perror(ttypath);
         goto out;
     }
@@ -1060,75 +1075,75 @@ main(int argc, char **argv)
         switch (cmd[0]) {
         case 'a':
             if (!strcmp(cmd, "acc-calibration")) {
-                rc = msp_cmd_acc_calibration(fd);
+                rc = msp_cmd_acc_calibration(msp);
                 break;
             }
             if (!strcmp(cmd, "altitude")) {
-                rc = msp_cmd_altitude(fd);
+                rc = msp_cmd_altitude(msp);
                 break;
             }
             if (!strcmp(cmd, "attitude")) {
-                rc = msp_cmd_attitude(fd);
+                rc = msp_cmd_attitude(msp);
                 break;
             }
             goto invalid;
         case 'b':
             if (!strcmp(cmd, "bat")) {
-                rc = msp_cmd_bat(fd);
+                rc = msp_cmd_bat(msp);
                 break;
             }
             goto invalid;
         case 'e':
             if (!strcmp(cmd, "eeprom-write")) {
-                rc = msp_cmd_eeprom_write(fd);
+                rc = msp_cmd_eeprom_write(msp);
                 break;
             }
             goto invalid;
         case 'i':
             if (!strcmp(cmd, "ident")) {
-                rc = msp_cmd_ident(fd);
+                rc = msp_cmd_ident(msp);
                 break;
             }
             goto invalid;
         case 'm':
             if (!strcmp(cmd, "mag-calibration")) {
-                rc = msp_cmd_mag_calibration(fd);
+                rc = msp_cmd_mag_calibration(msp);
                 break;
             }
             if (!strcmp(cmd, "motor")) {
-                rc = msp_cmd_motor(fd);
+                rc = msp_cmd_motor(msp);
                 break;
             }
             if (!strcmp(cmd, "motor-pins")) {
-                rc = msp_cmd_motor_pins(fd);
+                rc = msp_cmd_motor_pins(msp);
                 break;
             }
             goto invalid;
         case 'r':
             if (!strcmp(cmd, "raw-imu")) {
-                rc = msp_cmd_raw_imu(fd);
+                rc = msp_cmd_raw_imu(msp);
                 break;
             }
             if (!strcmp(cmd, "rc")) {
-                rc = msp_cmd_rc(fd);
+                rc = msp_cmd_rc(msp);
                 break;
             }
             if (!strcmp(cmd, "reset-conf")) {
-                rc = msp_cmd_reset_conf(fd);
+                rc = msp_cmd_reset_conf(msp);
                 break;
             }
             goto invalid;
         case 's':
             if (!strcmp(cmd, "servo")) {
-                rc = msp_cmd_servo(fd);
+                rc = msp_cmd_servo(msp);
                 break;
             }
             if (!strcmp(cmd, "set-raw-rc")) {
-                rc = msp_cmd_set_raw_rc(fd, argc, argv);
+                rc = msp_cmd_set_raw_rc(msp, argc, argv);
                 break;
             }
             if (!strcmp(cmd, "status")) {
-                rc = msp_cmd_status(fd);
+                rc = msp_cmd_status(msp);
                 break;
             }
             goto invalid;
