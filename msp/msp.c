@@ -164,11 +164,7 @@ msp_req_send(struct msp *msp,
     struct msp_hdr hdr;
     int rc;
 
-    hdr.tag[0] = '$';
-    hdr.tag[1] = 'M';
-    hdr.dsc = '<';
-    hdr.len = len;
-    hdr.cmd = cmd;
+    hdr = MSP_REQ_HDR(cmd, len);
 
     rc = msp_tty_send(msp->tty, &hdr, sizeof(hdr));
 
