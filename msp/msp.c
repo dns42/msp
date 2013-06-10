@@ -300,7 +300,7 @@ msp_multitype_name(enum msp_multitype type)
         return "vtail4";
     }
 
-    return "?";
+    return NULL;
 }
 
 static const char *
@@ -315,7 +315,7 @@ msp_ident_capability_name(int val)
         return "flap";
     }
 
-    return "?";
+    return NULL;
 }
 
 static int
@@ -336,7 +336,7 @@ msp_cmd_ident(int fd)
 
     printf("ident.multitype: %u (%s)\n",
            ident.multitype,
-           msp_multitype_name(ident.multitype));
+           msp_multitype_name(ident.multitype) ? : "?");
 
     printf("ident.mspversion: %u\n",
            ident.mspversion);
@@ -345,7 +345,7 @@ msp_cmd_ident(int fd)
            ident.capabilities, ident.capabilities ? " (" : "\n");
     for_each_bit(bit, &ident.capabilities)
         printf("%s%s",
-               msp_ident_capability_name(bit),
+               msp_ident_capability_name(bit) ? : "?",
                bit == ident.capabilities ? ")\n" : ", ");
 
 out:
@@ -639,7 +639,7 @@ msp_status_hwcap_name(int val)
         return "sonar";
     }
 
-    return "?";
+    return NULL;
 }
 
 static const char *
@@ -676,7 +676,7 @@ msp_status_box_name(int val)
         return "headadj";
     }
 
-    return "?";
+    return NULL;
 }
 
 static int
@@ -699,14 +699,14 @@ msp_cmd_status(int fd)
            st.hwcaps, st.hwcaps ? " (" : "\n");
     for_each_bit(bit, &st.hwcaps)
         printf("%s%s",
-               msp_status_hwcap_name(bit),
+               msp_status_hwcap_name(bit) ? : "?",
                bit == st.hwcaps ? ")\n" : ", ");
 
     printf("status.box: %#x%s",
            st.box, st.box ? " (" : "\n");
     for_each_bit(bit, &st.box)
         printf("%s%s",
-               msp_status_box_name(bit),
+               msp_status_box_name(bit) ? : "?",
                bit == st.box ? ")\n" : ", ");
 out:
     return rc;
