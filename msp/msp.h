@@ -138,8 +138,21 @@ struct msp_motor {
  */
 #define MSP_RC                  105
 
+enum msp_rc_chn {
+    MSP_CHN_ROLL       = 0,
+    MSP_CHN_PITCH      = 1,
+    MSP_CHN_YAW        = 2,
+    MSP_CHN_THROTTLE   = 3,
+    MSP_CHN_AUX1       = 4,
+    MSP_CHN_AUX2       = 5,
+    MSP_CHN_AUX3       = 6,
+    MSP_CHN_AUX4       = 7,
+};
+
+#define MSP_N_CHANNELS    8
+
 struct msp_raw_rc {
-    int16_t chn[8];
+    int16_t chn[MSP_N_CHANNELS];
 };
 
 /*

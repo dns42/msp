@@ -837,6 +837,31 @@ out:
     return rc;
 }
 
+static const char *
+msp_rc_chan_name(enum msp_rc_chn n)
+{
+    switch (n) {
+    case MSP_CHN_ROLL:
+        return "roll";
+    case MSP_CHN_PITCH:
+        return "pitch";
+    case MSP_CHN_YAW:
+        return "yaw";
+    case MSP_CHN_THROTTLE:
+        return "throttle";
+    case MSP_CHN_AUX1:
+        return "aux1";
+    case MSP_CHN_AUX2:
+        return "aux2";
+    case MSP_CHN_AUX3:
+        return "aux3";
+    case MSP_CHN_AUX4:
+        return "aux4";
+    }
+
+    return NULL;
+}
+
 static int
 msp_cmd_rc(int fd)
 {
@@ -850,7 +875,9 @@ msp_cmd_rc(int fd)
     }
 
     for (i = 0; i < array_size(rrc.chn); i++)
-        printf("rc.chn[%d]: %d\n", i, rrc.chn[i]);
+        printf("rc.chn[%s]: %d\n",
+               msp_rc_chan_name(i) ? : "?",
+               rrc.chn[i]);
 out:
     return rc;
 }
