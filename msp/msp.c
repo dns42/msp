@@ -120,13 +120,17 @@ msp_req_send(struct msp *msp,
 }
 
 static int
-msp_rsp_recv(struct msp *msp,
-             msp_cmd_t cmd, void *data, size_t len)
+__msp_rsp_recv(struct msp *msp,
+               msp_cmd_t cmd, void *data, size_t *_len)
 {
     struct msp_hdr hdr;
+    size_t len;
+    void *buf;
     uint8_t cks;
     int rc;
 
+    len = *_len;
+    buf = NULL;
     hdr.dsc = 0;
 
     rc = msp_tty_recv(msp, &hdr, sizeof(hdr), MSP_TIMEOUT);
@@ -144,30 +148,76 @@ msp_rsp_recv(struct msp *msp,
     if (hdr.dsc != '>')
         goto out;
 
-    if (hdr.len != len)
-        goto out;
-
     if (hdr.cmd != cmd)
         goto out;
 
-    rc = len
-        ? msp_tty_recv(msp, data, len, MSP_TIMEOUT)
-        : 0;
+    if (hdr.len) {
+        rc = -1;
 
-    if (!rc) {
-        rc = msp_tty_recv(msp, &cks, 1, MSP_TIMEOUT);
+        buf = unlikely(hdr.len > len)
+            ? malloc(hdr.len)
+            : data;
 
-        cks ^= msp_msg_checksum(&hdr, data);
+        if (!expected(buf))
+            goto out;
 
-        rc = cks ? -1 : 0;
+        rc = msp_tty_recv(msp, buf, hdr.len, MSP_TIMEOUT);
+        if (rc)
+            goto out;
     }
+
+    rc = msp_tty_recv(msp, &cks, 1, MSP_TIMEOUT);
+    if (rc)
+        goto out;
+
+    cks ^= msp_msg_checksum(&hdr, buf);
+
+    rc = cks ? -1 : 0;
+    if (rc) {
+        errno = EBADMSG;
+        goto out;
+    }
+
+    len = min(hdr.len, len);
+
+    if (buf != data)
+        memcpy(data, buf, len);
+
+    *_len = len;
 out:
-    if (rc && hdr.dsc)
+    if (buf && buf != data)
+        free(buf);
+
+    if (rc && hdr.dsc) {
         fprintf(stderr,
                 "rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
                 hdr.tag[0], hdr.tag[1], hdr.dsc,
                 hdr.len, len, hdr.cmd, cmd, cks);
+        errno = EPROTO;
+    }
 
+    return rc;
+}
+
+static int
+msp_rsp_recv(struct msp *msp,
+             msp_cmd_t cmd, void *data, size_t len)
+{
+    size_t _len;
+    int rc;
+
+    _len = len;
+
+    rc = __msp_rsp_recv(msp, cmd, data, &_len);
+    if (rc)
+        goto out;
+
+    if (_len != len) {
+        errno = EPROTO;
+        goto out;
+    }
+
+out:
     return rc;
 }
 
