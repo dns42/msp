@@ -2,6 +2,7 @@
 #define MSP_DEFS_H
 
 #include <endian.h>
+#include <stddef.h>
 
 #define htoavr(_h) ({                   \
     typeof((typeof(_h))0) __s;          \
@@ -40,6 +41,12 @@
     }                                   \
     __h;                                \
 })
+
+#define msg_type_end(_t, _memb)                          \
+    offsetof(_t, _memb) + sizeof(((_t *) NULL)->_memb)
+
+#define msg_data_end(_p, _memb)                 \
+    msg_type_end(typeof(*(_p)), _memb)
 
 #define for_each_bit(_bit, _bits)                               \
     for (;                                                      \

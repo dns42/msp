@@ -86,6 +86,7 @@ struct msp_status {
     uint16_t i2c_errcnt;
     uint16_t hwcaps;
     uint32_t box;
+    uint8_t conf;
 } PACKED;
 
 #define MSP_STATUS_HWCAP_ACC     (1<<0)

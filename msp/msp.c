@@ -596,28 +596,38 @@ out:
 }
 
 static int
-msp_status(struct msp *msp, struct msp_status *st)
+msp_status(struct msp *msp, struct msp_status *st, size_t *_len)
 {
+    size_t len;
     int rc;
+
+    len = *_len;
 
     rc = msp_req_send(msp, MSP_STATUS, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_STATUS, st, sizeof(*st));
+    rc = __msp_rsp_recv(msp, MSP_STATUS, st, &len);
     if (rc)
         goto out;
 
-    st->cycle_time = avrtoh(st->cycle_time);
-    st->i2c_errcnt = avrtoh(st->i2c_errcnt);
-    st->hwcaps = avrtoh(st->hwcaps);;
-    st->box = avrtoh(st->box);
+    if (len >= msg_data_end(st, box)) {
+        st->cycle_time = avrtoh(st->cycle_time);
+        st->i2c_errcnt = avrtoh(st->i2c_errcnt);
+        st->hwcaps = avrtoh(st->hwcaps);;
+        st->box = avrtoh(st->box);
+    }
+
+    if (len >= msg_data_end(st, conf))
+        st->conf = avrtoh(st->conf);
+
+    *_len = len;
 out:
     return rc;
 }
 
 static const char *
-msp_status_hwcap_name(int val)
+msp_status_hwcap_name(struct msp *msp, int val)
 {
     switch (val) {
     case MSP_STATUS_HWCAP_ACC:
@@ -636,7 +646,7 @@ msp_status_hwcap_name(int val)
 }
 
 static const char *
-msp_status_box_name(int val)
+msp_status_box_name(struct msp *msp, int val)
 {
     switch (val) {
     case MSP_STATUS_BOX_ACC:
@@ -676,31 +686,40 @@ static int
 msp_cmd_status(struct msp *msp)
 {
     struct msp_status st;
+    size_t len;
     int rc, bit;
 
-    rc = msp_status(msp, &st);
+    len = sizeof(st);
+
+    rc = msp_status(msp, &st, &len);
     if (rc) {
         perror("msp_status");
         goto out;
     }
 
-    printf("status.cycle_time: %u\n", st.cycle_time);
+    if (len >= msg_data_end(&st, box)) {
+        printf("status.cycle_time: %u\n", st.cycle_time);
 
-    printf("status.i2c_errcnt: %u\n", st.i2c_errcnt);
+        printf("status.i2c_errcnt: %u\n", st.i2c_errcnt);
 
-    printf("status.hwcaps: %#x%s",
-           st.hwcaps, st.hwcaps ? " (" : "\n");
-    for_each_bit(bit, &st.hwcaps)
+        printf("status.hwcaps: %#x%s",
+               st.hwcaps, st.hwcaps ? " (" : "\n");
+        for_each_bit(bit, &st.hwcaps)
         printf("%s%s",
-               msp_status_hwcap_name(bit) ? : "?",
+               msp_status_hwcap_name(msp, bit) ? : "?",
                bit == st.hwcaps ? ")\n" : ", ");
 
-    printf("status.box: %#x%s",
-           st.box, st.box ? " (" : "\n");
-    for_each_bit(bit, &st.box)
-        printf("%s%s",
-               msp_status_box_name(bit) ? : "?",
-               bit == st.box ? ")\n" : ", ");
+        printf("status.box: %#x%s",
+               st.box, st.box ? " (" : "\n");
+        for_each_bit(bit, &st.box)
+            printf("%s%s",
+                   msp_status_box_name(msp, bit) ? : "?",
+                   bit == st.box ? ")\n" : ", ");
+    }
+
+    if (len >= msg_data_end(&st, conf))
+        printf("status.conf: %#x\n", st.conf);
+
 out:
     return rc;
 }
