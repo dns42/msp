@@ -1056,6 +1056,7 @@ main(int argc, char **argv)
     rc = -1;
     ttypath = "/dev/ttyUSB0";
     speed = B115200;
+    msp = NULL;
 
     do {
         int c;
@@ -1209,6 +1210,17 @@ main(int argc, char **argv)
     }
 
 out:
+    if (msp) {
+        if (msp->tty)
+            tty_close(msp->tty);
+
+        if (msp->loop)
+            evtloop_destroy(msp->loop);
+
+        free(msp);
+    }
+
+
     if (fd >= 0)
         close(fd);
 
