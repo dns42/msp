@@ -1031,6 +1031,139 @@ out:
     return rc;
 }
 
+static int
+msp_box(struct msp *msp, uint16_t *box, int *_cnt)
+{
+    int rc, cnt, i;
+    size_t len;
+
+    cnt = *_cnt;
+
+    rc = msp_req_send(msp, MSP_BOX, NULL, 0);
+    if (rc)
+        goto out;
+
+    len = cnt * sizeof(*box);
+
+    rc = __msp_rsp_recv(msp, MSP_BOX, box, &len);
+    if (rc)
+        goto out;
+
+    if (unexpected(len % sizeof(*box))) {
+        errno = EPROTO;
+        goto out;
+    }
+
+    cnt = len / sizeof(*box);
+
+    for (i = 0; i < cnt; i++)
+        box[i] = avrtoh(box[i]);
+
+    *_cnt = cnt;
+out:
+    return rc;
+}
+
+static int
+msp_boxnames(struct msp *msp, char *names, size_t *_len)
+{
+    int rc;
+
+    rc = msp_req_send(msp, MSP_BOXNAMES, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = __msp_rsp_recv(msp, MSP_BOXNAMES, names, _len);
+out:
+    return rc;
+}
+
+static int
+msp_boxids(struct msp *msp, uint8_t *boxids, size_t *_len)
+{
+    int rc;
+
+    rc = msp_req_send(msp, MSP_BOXIDS, NULL, 0);
+    if (rc)
+        goto out;
+
+    rc = __msp_rsp_recv(msp, MSP_BOXIDS, boxids, _len);
+out:
+    return rc;
+}
+
+static int
+msp_cmd_box(struct msp *msp)
+{
+    size_t len;
+    char *names, *pos;
+    uint16_t *items;
+    uint8_t *boxids;
+    int rc, boxcnt, i;
+
+    rc = -1;
+
+    boxids = NULL;
+    items = NULL;
+
+    len = MSP_LEN_MAX;
+    names = malloc(len);
+    if (!expected(names))
+        goto out;
+
+    rc = msp_boxnames(msp, names, &len);
+    if (rc) {
+        perror("msp_boxnames");
+        goto out;
+    }
+
+    boxcnt = 0;
+    for (i = 0; i < len; i++)
+        if (names[i] == ';')
+            boxcnt++;
+
+    len = MSP_LEN_MAX;
+    boxids = malloc(len);
+    if (!expected(boxids))
+        goto out;
+
+    rc = msp_boxids(msp, boxids, &len);
+    if (rc) {
+        perror("msp_boxids");
+        goto out;
+    }
+
+    if (unexpected(len != boxcnt)) {
+        errno = EPROTO;
+        goto out;
+    }
+
+    rc = -1;
+    items = malloc(boxcnt * sizeof(*items));
+    if (!expected(items))
+        goto out;
+
+    rc = msp_box(msp, items, &boxcnt);
+    if (rc) {
+        perror("msp_box");
+        goto out;
+    }
+
+    pos = names;
+    for (i = 0; i < boxcnt; i++)
+        printf("box.%s(%d): %x\n",
+               strsep(&pos, ";"), boxids[i], items[i]);
+
+out:
+    if (items)
+        free(items);
+    if (boxids)
+        free(boxids);
+    if (names)
+        free(names);
+
+    return rc;
+}
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -1045,6 +1178,7 @@ msp_usage(FILE *s, const char *prog)
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
             "  bat -- read battery status\n"
+            "  box -- read checkbox items\n"
             "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify controller firmware\n"
             "  mag-calibration -- calibrate magnetometer\n"
@@ -1154,6 +1288,10 @@ main(int argc, char **argv)
         case 'b':
             if (!strcmp(cmd, "bat")) {
                 rc = msp_cmd_bat(msp);
+                break;
+            }
+            if (!strcmp(cmd, "box")) {
+                rc = msp_cmd_box(msp);
                 break;
             }
             goto invalid;

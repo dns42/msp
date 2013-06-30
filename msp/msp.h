@@ -22,6 +22,8 @@ struct msp_hdr {
     msp_cmd_t cmd;
 } PACKED;
 
+#define MSP_LEN_MAX UINT8_MAX
+
 #define MSP_REQ_HDR(_cmd, _len)                     \
     (struct msp_hdr) {                              \
         .tag[0] = '$',                              \
