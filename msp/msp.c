@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -848,17 +849,68 @@ msp_cmd_set_raw_rc(struct msp *msp, int argc, char **argv)
 
     while (++optind < argc) {
         const char *arg;
+        char name[9];
         int16_t val;
         int chn, n;
 
         arg = argv[optind];
+        chn = -1;
 
         if (!strcmp(arg, "--"))
             break;
 
-        n = sscanf(arg, "%d:%hu", &chn, &val);
-        if (n != 2 ||
-            chn < 0 || chn >= array_size(rrc.chn)) {
+        n = sscanf(arg, "%8[^:]:%hu", name, &val);
+        if (n != 2)
+            goto err;
+
+        if (isdigit(name[0])) {
+            char *end;
+
+            chn = strtol(name, &end, 0);
+            if (*end != 0)
+                chn = -1;
+
+        } else {
+            switch (tolower(name[0])) {
+            case 'r':
+                if (!strncasecmp(name, "rol", 3)) {
+                    chn = MSP_CHN_ROLL;
+                    break;
+                }
+                break;
+            case 'p':
+                if (!strncasecmp(name, "pit", 3)) {
+                    chn = MSP_CHN_PITCH;
+                    break;
+                }
+                break;
+            case 'y':
+                if (!strncasecmp(name, "yaw", 3)) {
+                    chn = MSP_CHN_YAW;
+                    break;
+                }
+                break;
+            case 't':
+                if (!strncasecmp(name, "thr", 3)) {
+                    chn = MSP_CHN_THROTTLE;
+                    break;
+                }
+                break;
+            case 'a':
+                if (!strncasecmp(name, "aux", 3)) {
+                    char *end;
+                    chn = strtoul(&name[3], &end, 10);
+                    if (*end != 0)
+                        goto err;
+                    chn += MSP_CHN_AUX1 - 1;
+                    break;
+                }
+                break;
+            }
+        }
+
+    err:
+        if (chn < 0 || chn >= array_size(rrc.chn)) {
             fprintf(stderr,
                     "invalid rc item '%s', "
                     "must be '<0-8>:<1000-2000>'\n", arg);
