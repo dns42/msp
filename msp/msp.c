@@ -19,7 +19,42 @@
 #include <termios.h>
 #include <libgen.h>
 
+void
+msp_close(struct msp *msp)
+{
+    free(msp);
+}
 
+struct msp *
+msp_open(struct tty *tty, struct evtloop *loop)
+{
+    struct msp *msp;
+    int rc;
+
+    rc = -1;
+
+    msp = calloc(1, sizeof(*msp));
+    if (!msp) {
+        perror("calloc");
+        goto out;
+    }
+
+    msp->tty = tty;
+    msp->loop = loop;
+
+    rc = 0;
+out:
+    if (rc) {
+        int err = errno;
+
+        msp_close(msp);
+        msp = NULL;
+
+        errno = err;
+    }
+
+    return msp;
+}
 
 static int
 msp_tty_recv(struct msp *msp,
@@ -1346,6 +1381,8 @@ main(int argc, char **argv)
 {
     const char *ttypath;
     struct msp *msp;
+    struct tty *tty;
+    struct evtloop *loop;
     speed_t speed;
     int rc, fd;
 
@@ -1354,6 +1391,8 @@ main(int argc, char **argv)
     ttypath = "/dev/ttyUSB0";
     speed = B115200;
     msp = NULL;
+    tty = NULL;
+    loop = NULL;
 
     do {
         int c;
@@ -1389,29 +1428,27 @@ main(int argc, char **argv)
     if (optind == argc)
         goto usage;
 
-    msp = calloc(1, sizeof(*msp));
-    if (!msp) {
-        perror("calloc");
-        goto out;
-    }
-
-    msp->tty = tty_open(ttypath, speed);
-    if (!msp->tty) {
+    tty = tty_open(ttypath, speed);
+    if (!tty) {
         perror(ttypath);
         goto out;
     }
 
-    msp->loop = evtloop_create();
-    if (!msp->loop) {
+    loop = evtloop_create();
+    if (!loop) {
         perror("evtloop_create");
         goto out;
     }
 
-    rc = tty_plug(msp->tty, msp->loop);
+    rc = tty_plug(tty, loop);
     if (rc) {
         perror("tty_register_events");
         goto out;
     }
+
+    msp = msp_open(tty, loop);
+    if (!msp)
+        goto out;
 
     for (; optind < argc; optind++) {
         const char *cmd;
@@ -1515,16 +1552,14 @@ main(int argc, char **argv)
     }
 
 out:
-    if (msp) {
-        if (msp->tty)
-            tty_close(msp->tty);
+    if (msp)
+        msp_close(msp);
 
-        if (msp->loop)
-            evtloop_destroy(msp->loop);
+    if (tty)
+        tty_close(tty);
 
-        free(msp);
-    }
-
+    if (loop)
+        evtloop_destroy(loop);
 
     if (fd >= 0)
         close(fd);
