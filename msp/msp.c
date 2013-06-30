@@ -1093,6 +1093,23 @@ out:
 }
 
 static int
+msp_set_box(struct msp *msp, uint16_t *items, int cnt)
+{
+    int rc, i;
+
+    for (i = 0; i < cnt; i++)
+        items[i] = htoavr(items[i]);
+
+    rc = msp_req_send(msp, MSP_SET_BOX, items, cnt * sizeof(*items));
+    if (rc)
+        goto out;
+
+    rc = msp_rsp_recv(msp, MSP_SET_BOX, NULL, 0);
+out:
+    return rc;
+}
+
+static int
 msp_cmd_box(struct msp *msp)
 {
     size_t len;
@@ -1164,6 +1181,136 @@ out:
 
     return rc;
 }
+
+static int
+msp_cmd_set_box(struct msp *msp, int argc, char **argv)
+{
+    size_t len;
+    char *names, **namev, *pos;
+    uint16_t *items;
+    uint8_t *boxids;
+    int rc, boxcnt, i;
+
+    rc = -1;
+
+    boxids = NULL;
+    items = NULL;
+    namev = NULL;
+
+    len = MSP_LEN_MAX;
+    names = malloc(len);
+    if (!expected(names))
+        goto out;
+
+    rc = msp_boxnames(msp, names, &len);
+    if (rc) {
+        perror("msp_boxnames");
+        goto out;
+    }
+
+    boxcnt = 0;
+    for (i = 0; i < len; i++)
+        if (names[i] == ';')
+            boxcnt++;
+
+    len = MSP_LEN_MAX;
+    boxids = malloc(len);
+    if (!expected(boxids))
+        goto out;
+
+    rc = msp_boxids(msp, boxids, &len);
+    if (rc) {
+        perror("msp_boxids");
+        goto out;
+    }
+
+    if (unexpected(len != boxcnt)) {
+        errno = EPROTO;
+        goto out;
+    }
+
+    rc = -1;
+    items = malloc(boxcnt * sizeof(*items));
+    if (!expected(items))
+        goto out;
+
+    rc = msp_box(msp, items, &boxcnt);
+    if (rc) {
+        perror("msp_box");
+        goto out;
+    }
+
+    namev = malloc(boxcnt * sizeof(*namev));
+    if (!expected(namev))
+        goto out;
+
+    pos = names;
+    for (i = 0; i < boxcnt; i++)
+        namev[i] = strsep(&pos, ";");
+
+    while (++optind < argc) {
+        const char *arg;
+        char name[9];
+        int16_t val;
+        int n;
+
+        arg = argv[optind];
+        i = -1;
+
+        n = sscanf(arg, "%8[^:]:%hu", name, &val);
+        if (n != 2)
+            goto err;
+
+        if (isdigit(name[0])) {
+            char *end;
+            int id;
+
+            id = strtol(name, &end, 0);
+            if (*end != 0)
+                goto err;
+
+            for (i = 0; i < boxcnt; i++)
+                if (boxids[i] == id)
+                    break;
+
+        } else {
+
+            for (i = 0; i < boxcnt; i++)
+                if (!strcasecmp(name, namev[i]))
+                    break;
+        }
+
+    err:
+        if (i < 0 || i >= boxcnt) {
+            fprintf(stderr,
+                    "Invalid box item '%s', "
+                    "must be '<id>:<int16>'\n", arg);
+            errno = EINVAL;
+            goto out;
+        }
+
+        items[i] = htoavr(val);
+    }
+
+    pos = names;
+    for (i = 0; i < boxcnt; i++)
+        printf("box.%s(%d): %x\n",
+               namev[i], boxids[i], items[i]);
+
+    rc = msp_set_box(msp, items, boxcnt);
+out:
+    if (namev)
+        free(namev);
+    if (items)
+        free(items);
+    if (boxids)
+        free(boxids);
+    if (names)
+        free(names);
+
+    return rc;
+}
+
 static void
 msp_usage(FILE *s, const char *prog)
 {
@@ -1188,6 +1335,7 @@ msp_usage(FILE *s, const char *prog)
             "  rc -- read RC channels\n"
             "  reset-conf -- reset params to firmware defaults\n"
             "  servo -- read servo control\n"
+            "  set-box -- set box items\n"
             "  set-raw-rc -- set RC channels\n"
             "  status -- read controller status\n"
             "\n");
@@ -1338,6 +1486,10 @@ main(int argc, char **argv)
         case 's':
             if (!strcmp(cmd, "servo")) {
                 rc = msp_cmd_servo(msp);
+                break;
+            }
+            if (!strcmp(cmd, "set-box")) {
+                rc = msp_cmd_set_box(msp, argc, argv);
                 break;
             }
             if (!strcmp(cmd, "set-raw-rc")) {
