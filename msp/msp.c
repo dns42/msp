@@ -142,10 +142,7 @@ __msp_rsp_recv(struct msp *msp,
     if (hdr.tag[0] != '$' || hdr.tag[1] != 'M')
         goto out;
 
-    if (hdr.dsc == '!')
-        goto out;
-
-    if (hdr.dsc != '>')
+    if (hdr.dsc != '!' && hdr.dsc != '>')
         goto out;
 
     if (hdr.cmd != cmd)
@@ -178,6 +175,12 @@ __msp_rsp_recv(struct msp *msp,
         goto out;
     }
 
+    if (hdr.dsc == '!') {
+        rc = -1;
+        errno = ENOSYS;
+        goto out;
+    }
+
     len = min(hdr.len, len);
 
     if (buf != data)
@@ -193,7 +196,6 @@ out:
                 "rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
                 hdr.tag[0], hdr.tag[1], hdr.dsc,
                 hdr.len, len, hdr.cmd, cmd, cks);
-        errno = EPROTO;
     }
 
     return rc;
