@@ -72,19 +72,25 @@ out:
 }
 
 static int
-msp_cli_bat(struct msp *msp)
+msp_cli_analog(struct msp *msp)
 {
-    struct msp_bat bat;
+    struct msp_analog analog;
+    size_t len;
     int rc;
 
-    rc = msp_bat(msp, &bat);
+    len = sizeof(analog);
+
+    rc = msp_analog(msp, &analog, &len);
     if (rc) {
-        perror("msp_bat");
+        perror("msp_analog");
         goto out;
     }
 
-    printf("bat.vbat: %u\n", bat.vbat);
-    printf("bat.powermetersum: %u\n", bat.powermetersum);
+    printf("analog.vbat: %u\n", analog.vbat);
+    printf("analog.powermetersum: %u\n", analog.powermetersum);
+
+    if (len >= msg_data_end(&analog, rssi))
+        printf("analog.rssi: %u\n", analog.rssi);
 out:
     return rc;
 }
@@ -622,7 +628,7 @@ msp_usage(FILE *s, const char *prog)
             "  acc-calibration -- calibrate accelerometer\n"
             "  altitude -- read altitude\n"
             "  attitude -- read attitude\n"
-            "  bat -- read battery status\n"
+            "  analog -- read analog port status\n"
             "  box -- read checkbox items\n"
             "  eeprom-write -- write current params to eeprom\n"
             "  ident -- identify controller firmware\n"
@@ -728,16 +734,16 @@ main(int argc, char **argv)
                 rc = msp_cli_altitude(msp);
                 break;
             }
+            if (!strcmp(cmd, "analog")) {
+                rc = msp_cli_analog(msp);
+                break;
+            }
             if (!strcmp(cmd, "attitude")) {
                 rc = msp_cli_attitude(msp);
                 break;
             }
             goto invalid;
         case 'b':
-            if (!strcmp(cmd, "bat")) {
-                rc = msp_cli_bat(msp);
-                break;
-            }
             if (!strcmp(cmd, "box")) {
                 rc = msp_cli_box(msp);
                 break;

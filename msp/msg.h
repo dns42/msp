@@ -218,11 +218,12 @@ struct msp_altitude {
  *      powermetersum
  *      v2.2: rssi, if available on rx
  */
-#define MSP_BAT                 110
+#define MSP_ANALOG              110
 
-struct msp_bat {
+struct msp_analog {
     uint8_t vbat;
     uint16_t powermetersum;
+    uint16_t rssi;
 } PACKED;
 
 /*

@@ -113,11 +113,14 @@ msp_altitude_rsp_dec(const struct msp_hdr *hdr, void *data)
 }
 
 static int
-msp_bat_rsp_dec(const struct msp_hdr *hdr, void *data)
+msp_analog_rsp_dec(const struct msp_hdr *hdr, void *data)
 {
-    struct msp_bat *bat = data;
+    struct msp_analog *analog = data;
 
-    bat->powermetersum = avrtoh(bat->powermetersum);
+    analog->powermetersum = avrtoh(analog->powermetersum);
+
+    if (hdr->len >= msg_data_end(analog, rssi))
+        analog->rssi = avrtoh(analog->rssi);
 
     return 0;
 }
@@ -245,13 +248,13 @@ const struct msp_msg_info msp_msg_infos[MSP_CMD_MAX] = {
         .req = NULL,
         .rsp = msp_altitude_rsp_dec,
     },
-    [MSP_BAT] = {
-        .tag = "MSP_BAT",
+    [MSP_ANALOG] = {
+        .tag = "MSP_ANALOG",
         .sup = 1,
-        .min = sizeof(struct msp_bat),
-        .max = sizeof(struct msp_bat),
+        .min = msg_type_end(struct msp_analog, powermetersum),
+        .max = msg_type_end(struct msp_analog, rssi),
         .req = NULL,
-        .rsp = msp_bat_rsp_dec,
+        .rsp = msp_analog_rsp_dec,
     },
     [MSP_BOX] = {
         .tag = "MSP_BOX",

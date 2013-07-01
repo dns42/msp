@@ -598,15 +598,15 @@ out:
 }
 
 int
-msp_bat(struct msp *msp, struct msp_bat *bat)
+msp_analog(struct msp *msp, struct msp_analog *analog, size_t *len)
 {
     int rc;
 
-    rc = msp_req_send(msp, MSP_BAT, NULL, 0);
+    rc = msp_req_send(msp, MSP_ANALOG, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_BAT, bat, sizeof(*bat));
+    rc = __msp_rsp_recv(msp, MSP_ANALOG, analog, len);
 out:
     return rc;
 }
