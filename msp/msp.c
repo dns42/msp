@@ -343,20 +343,15 @@ out:
 }
 
 int
-msp_altitude(struct msp *msp, int32_t *_alt)
+msp_altitude(struct msp *msp, struct msp_altitude *alt, size_t *_len)
 {
-    int32_t alt;
     int rc;
 
     rc = msp_req_send(msp, MSP_ALTITUDE, NULL, 0);
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_ALTITUDE, &alt, sizeof(alt));
-    if (rc)
-        goto out;
-
-    *_alt = avrtoh(alt);
+    rc = __msp_rsp_recv(msp, MSP_ALTITUDE, alt, _len);
 out:
     return rc;
 }

@@ -26,7 +26,7 @@ int msp_acc_calibration(struct msp *msp);
 
 int msp_attitude(struct msp *msp, struct msp_attitude *att);
 
-int msp_altitude(struct msp *msp, int32_t *alt);
+int msp_altitude(struct msp *msp, struct msp_altitude *att, size_t *len);
 
 int msp_analog(struct msp *msp, struct msp_analog *bat, size_t *len);
 

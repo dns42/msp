@@ -34,16 +34,22 @@ out:
 static int
 msp_cli_altitude(struct msp *msp)
 {
-    int32_t alt;
+    struct msp_altitude alt;
+    size_t len;
     int rc;
 
-    rc = msp_altitude(msp, &alt);
+    len = sizeof(alt);
+
+    rc = msp_altitude(msp, &alt, &len);
     if (rc) {
         perror("msp_altitude");
         goto out;
     }
 
-    printf("altitude: %d\n", alt);
+    printf("altitude.altitude: %d\n", alt.altitude);
+
+    if (len > msg_data_end(&alt, variometer))
+        printf("altitude.variometer: %d\n", alt.variometer);
 out:
     return rc;
 }
