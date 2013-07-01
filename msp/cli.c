@@ -455,6 +455,12 @@ msp_cli_box(struct msp *msp)
         goto out;
 
     rc = msp_boxids(msp, boxids, &len);
+    if (rc && errno == ENOSYS) {
+        len = boxcnt;
+        for (i = 0; i < len; i++)
+            boxids[i] = i;
+        rc = 0;
+    }
     if (rc) {
         perror("msp_boxids");
         goto out;
@@ -529,6 +535,12 @@ msp_cli_set_box(struct msp *msp, int argc, char **argv)
         goto out;
 
     rc = msp_boxids(msp, boxids, &len);
+    if (rc && errno == ENOSYS) {
+        len = boxcnt;
+        for (i = 0; i < len; i++)
+            boxids[i] = i;
+        rc = 0;
+    }
     if (rc) {
         perror("msp_boxids");
         goto out;
