@@ -2,10 +2,11 @@
 #include "config.h"
 #endif
 
+#include <msp/msp-internal.h>
+
 #include <msp/msp.h>
 #include <msp/defs.h>
 
-#include <crt/tty.h>
 #include <crt/defs.h>
 
 #include <stdlib.h>
@@ -18,12 +19,7 @@
 #include <termios.h>
 #include <libgen.h>
 
-struct msp {
-    struct tty *tty;
-    struct evtloop *loop;
-};
 
-#define MSP_TIMEOUT (struct timeval) { 1, 0 }
 
 static int
 msp_tty_recv(struct msp *msp,
