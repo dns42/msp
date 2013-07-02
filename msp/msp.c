@@ -100,51 +100,35 @@ out:
     return rc;
 }
 
-static uint8_t
-msp_msg_checksum(const struct msp_hdr *hdr, const void *data)
-{
-    uint8_t cks;
-
-    cks  = hdr->cmd;
-    cks ^= hdr->len;
-
-    if (hdr->len) {
-        const uint8_t *pos;
-        msp_len_t len;
-
-
-        len = hdr->len;
-        pos = data;
-
-        while (len--)
-            cks ^= *pos++;
-    }
-
-    return cks;
-}
-
 int
 msp_req_send(struct msp *msp,
-             msp_cmd_t cmd, const void *data, size_t len)
+             msp_cmd_t cmd, void *data, size_t len)
 {
     struct msp_hdr hdr;
     struct iovec iov[3];
     uint8_t cks;
-    int cnt;
+    int rc, cnt;
 
     cnt = 0;
     hdr = MSP_REQ_HDR(cmd, len);
 
     iov[cnt++] = (struct iovec) { &hdr, sizeof(hdr) };
 
-    if (len)
-        iov[cnt++] = (struct iovec) { (void*)data, len };
+    if (len) {
+        rc = msp_msg_encode_req(&hdr, data);
+        if (unexpected(rc))
+            goto out;
+
+        iov[cnt++] = (struct iovec) { data, len };
+    }
 
     cks = msp_msg_checksum(&hdr, data);
 
     iov[cnt++] = (struct iovec) { &cks, sizeof(cks) };
 
-    return tty_sendv(msp->tty, iov, cnt);
+    rc = tty_sendv(msp->tty, iov, cnt);
+out:
+    return rc;
 }
 
 int
@@ -209,6 +193,10 @@ __msp_rsp_recv(struct msp *msp,
         goto out;
     }
 
+    rc = msp_msg_decode_rsp(&hdr, buf);
+    if (rc)
+        goto out;
+
     len = min(hdr.len, len);
 
     if (buf != data)
@@ -221,7 +209,8 @@ out:
 
     if (rc && hdr.dsc) {
         fprintf(stderr,
-                "rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
+                "%s rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
+                msp_cmd_name(cmd),
                 hdr.tag[0], hdr.tag[1], hdr.dsc,
                 hdr.len, len, hdr.cmd, cmd, cks);
     }
@@ -342,24 +331,13 @@ msp_ident_capability_name(int val)
 int
 msp_raw_imu(struct msp *msp, struct msp_raw_imu *imu)
 {
-    int rc, i;
+    int rc;
 
     rc = msp_req_send(msp, MSP_RAW_IMU, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_RAW_IMU, imu, sizeof(*imu));
-    if (rc)
-        goto out;
-
-    for (i = 0; i < array_size(imu->acc); i++)
-        imu->acc[i] = avrtoh(imu->acc[i]);
-
-    for (i = 0; i < array_size(imu->gyr); i++)
-        imu->gyr[i] = avrtoh(imu->gyr[i]);
-
-    for (i = 0; i < array_size(imu->mag); i++)
-        imu->mag[i] = avrtoh(imu->mag[i]);
 out:
     return rc;
 }
@@ -393,13 +371,6 @@ msp_attitude(struct msp *msp, struct msp_attitude *att)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_ATTITUDE, att, sizeof(*att));
-    if (rc)
-        goto out;
-
-    att->roll = avrtoh(att->roll);
-    att->pitch = avrtoh(att->pitch);
-    att->yaw = avrtoh(att->yaw);
-    att->yawtf = avrtoh(att->yawtf);
 out:
     return rc;
 }
@@ -463,30 +434,13 @@ out:
 int
 msp_status(struct msp *msp, struct msp_status *st, size_t *_len)
 {
-    size_t len;
     int rc;
-
-    len = *_len;
 
     rc = msp_req_send(msp, MSP_STATUS, NULL, 0);
     if (rc)
         goto out;
 
-    rc = __msp_rsp_recv(msp, MSP_STATUS, st, &len);
-    if (rc)
-        goto out;
-
-    if (len >= msg_data_end(st, box)) {
-        st->cycle_time = avrtoh(st->cycle_time);
-        st->i2c_errcnt = avrtoh(st->i2c_errcnt);
-        st->hwcaps = avrtoh(st->hwcaps);;
-        st->box = avrtoh(st->box);
-    }
-
-    if (len >= msg_data_end(st, conf))
-        st->conf = avrtoh(st->conf);
-
-    *_len = len;
+    rc = __msp_rsp_recv(msp, MSP_STATUS, st, _len);
 out:
     return rc;
 }
@@ -550,18 +504,13 @@ msp_status_box_name(struct msp *msp, int val)
 int
 msp_servo(struct msp *msp, struct msp_servo *servo)
 {
-    int rc, i;
+    int rc;
 
     rc = msp_req_send(msp, MSP_SERVO, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_SERVO, servo, sizeof(*servo));
-    if (rc)
-        goto out;
-
-    for (i = 0; i < array_size(servo->ctl); i++)
-        servo->ctl[i] = avrtoh(servo->ctl[i]);
 out:
     return rc;
 }
@@ -569,18 +518,13 @@ out:
 int
 msp_motor(struct msp *msp, struct msp_motor *motor)
 {
-    int rc, i;
+    int rc;
 
     rc = msp_req_send(msp, MSP_MOTOR, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_MOTOR, motor, sizeof(*motor));
-    if (rc)
-        goto out;
-
-    for (i = 0; i < array_size(motor->ctl); i++)
-        motor->ctl[i] = avrtoh(motor->ctl[i]);
 out:
     return rc;
 }
@@ -602,18 +546,13 @@ out:
 int
 msp_rc(struct msp *msp, struct msp_raw_rc *rrc)
 {
-    int rc, i;
+    int rc;
 
     rc = msp_req_send(msp, MSP_RC, NULL, 0);
     if (rc)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_RC, rrc, sizeof(*rrc));
-    if (rc)
-        goto out;
-
-    for (i = 0; i < array_size(rrc->chn); i++)
-        rrc->chn[i] = avrtoh(rrc->chn[i]);
 out:
     return rc;
 }
@@ -644,7 +583,7 @@ msp_rc_chan_name(enum msp_rc_chn n)
 }
 
 int
-msp_set_raw_rc(struct msp *msp, const struct msp_raw_rc *rrc)
+msp_set_raw_rc(struct msp *msp, struct msp_raw_rc *rrc)
 {
     int rc;
 
@@ -675,32 +614,20 @@ out:
 int
 msp_box(struct msp *msp, uint16_t *box, int *_cnt)
 {
-    int rc, cnt, i;
+    int rc;
     size_t len;
-
-    cnt = *_cnt;
 
     rc = msp_req_send(msp, MSP_BOX, NULL, 0);
     if (rc)
         goto out;
 
-    len = cnt * sizeof(*box);
+    len = *_cnt * sizeof(*box);
 
     rc = __msp_rsp_recv(msp, MSP_BOX, box, &len);
     if (rc)
         goto out;
 
-    if (unexpected(len % sizeof(*box))) {
-        errno = EPROTO;
-        goto out;
-    }
-
-    cnt = len / sizeof(*box);
-
-    for (i = 0; i < cnt; i++)
-        box[i] = avrtoh(box[i]);
-
-    *_cnt = cnt;
+    *_cnt = len / sizeof(*box);
 out:
     return rc;
 }
@@ -736,10 +663,8 @@ out:
 int
 msp_set_box(struct msp *msp, uint16_t *items, int cnt)
 {
-    int rc, i;
+    int rc;
 
-    for (i = 0; i < cnt; i++)
-        items[i] = htoavr(items[i]);
 
     rc = msp_req_send(msp, MSP_SET_BOX, items, cnt * sizeof(*items));
     if (rc)

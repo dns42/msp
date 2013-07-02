@@ -22,6 +22,7 @@ struct msp_hdr {
     msp_cmd_t cmd;
 } PACKED;
 
+#define MSP_CMD_MAX UINT8_MAX
 #define MSP_LEN_MAX UINT8_MAX
 
 #define MSP_REQ_HDR(_cmd, _len)                     \
@@ -205,6 +206,11 @@ struct msp_attitude {
  *      variometer
  */
 #define MSP_ALTITUDE            109
+
+struct msp_altitude {
+    int32_t altitude;
+    int16_t variometer;
+};
 
 /*
  * get
@@ -405,6 +411,14 @@ struct msp_motor_pins {
  *      debug4
  */
 #define MSP_DEBUG               254
+
+int msp_msg_encode_req(const struct msp_hdr *hdr, void *data);
+
+int msp_msg_decode_rsp(const struct msp_hdr *hdr, void *data);
+
+uint8_t msp_msg_checksum(const struct msp_hdr *hdr, const void *_data);
+
+const char * msp_cmd_name(msp_cmd_t cmd);
 
 #endif
 

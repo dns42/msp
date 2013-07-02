@@ -8,6 +8,8 @@ AM_CPPFLAGS  = -I$(top_srcdir)
 lib_LTLIBRARIES  = libmsp.la
 
 libmsp_la_SOURCES  = defs.h
+libmsp_la_SOURCES += msg.c
+libmsp_la_SOURCES += msg-internal.h
 libmsp_la_SOURCES += msp.c
 libmsp_la_SOURCES += msp-internal.h
 

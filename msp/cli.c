@@ -351,7 +351,7 @@ msp_cli_set_raw_rc(struct msp *msp, int argc, char **argv)
             goto out;
         }
 
-        rrc.chn[chn] = htoavr(val);
+        rrc.chn[chn] = val;
     }
 
     rc = msp_set_raw_rc(msp, &rrc);
@@ -587,7 +587,7 @@ msp_cli_set_box(struct msp *msp, int argc, char **argv)
             goto out;
         }
 
-        items[i] = htoavr(val);
+        items[i] = val;
     }
 
     pos = names;

@@ -14,7 +14,7 @@ struct msp * msp_open(struct tty *tty, struct evtloop *loop);
 void msp_close(struct msp *msp);
 
 int msp_req_send(struct msp *msp,
-                 msp_cmd_t cmd, const void *data, size_t len);
+                 msp_cmd_t cmd, void *data, size_t len);
 
 int __msp_rsp_recv(struct msp *msp,
                    msp_cmd_t cmd, void *data, size_t *len);
@@ -56,7 +56,7 @@ int msp_servo(struct msp *msp, struct msp_servo *servo);
 
 int msp_set_box(struct msp *msp, uint16_t *items, int cnt);
 
-int msp_set_raw_rc(struct msp *msp, const struct msp_raw_rc *rrc);
+int msp_set_raw_rc(struct msp *msp, struct msp_raw_rc *rrc);
 
 int msp_status(struct msp *msp, struct msp_status *st, size_t *len);
 
