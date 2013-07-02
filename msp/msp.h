@@ -1,410 +1,74 @@
 #ifndef MSP_MSP_H
 #define MSP_MSP_H
 
-#include <stdint.h>
+#include <msp/msg.h>
 
-#if __GNUC__
-#define PACKED __attribute__((packed))
-#endif
+#include <crt/evtloop.h>
+#include <crt/tty.h>
 
-/*
- * Multiwii Serial Protocol v0
- */
-#define MSP_VERSION             0
+#include <sys/types.h>
+#include <termios.h>
 
-typedef uint8_t msp_len_t;
-typedef uint8_t msp_cmd_t;
+struct msp * msp_open(struct tty *tty, struct evtloop *loop);
 
-struct msp_hdr {
-    char tag[2]; /* '$' 'M' */
-    char dsc;    /* '>': req, '<': rsp, '!': err */
-    msp_len_t len;
-    msp_cmd_t cmd;
-} PACKED;
+void msp_close(struct msp *msp);
 
-#define MSP_LEN_MAX UINT8_MAX
+int msp_req_send(struct msp *msp,
+                 msp_cmd_t cmd, const void *data, size_t len);
 
-#define MSP_REQ_HDR(_cmd, _len)                     \
-    (struct msp_hdr) {                              \
-        .tag[0] = '$',                              \
-        .tag[1] = 'M',                              \
-        .dsc = '<',                                 \
-        .len = (_len),                              \
-        .cmd = (_cmd),                              \
-    }
+int __msp_rsp_recv(struct msp *msp,
+                   msp_cmd_t cmd, void *data, size_t *len);
 
-/*
- * get
- *   multitype
- *   multiwii version
- *   protocol version
- *   capability variable
- */
-#define MSP_IDENT               100
+int msp_rsp_recv(struct msp *msp,
+                 msp_cmd_t cmd, void *data, size_t len);
 
-struct msp_ident {
-    uint8_t     fwversion;
-    uint8_t     multitype;
-    uint8_t     mspversion;
-    uint32_t    capabilities;
-} PACKED;
+int msp_acc_calibration(struct msp *msp);
 
-enum msp_multitype {
-    MSP_MULTITYPE_TRI = 1,
-    MSP_MULTITYPE_QUADP = 2,
-    MSP_MULTITYPE_QUADX = 3,
-    MSP_MULTITYPE_BI = 4,
-    MSP_MULTITYPE_GIMBAL = 5,
-    MSP_MULTITYPE_Y6 = 6,
-    MSP_MULTITYPE_HEX6 = 7,
-    MSP_MULTITYPE_FLYING_WING = 8,
-    MSP_MULTITYPE_Y4 = 9,
-    MSP_MULTITYPE_HEX6X = 10,
-    MSP_MULTITYPE_OCTOX8 = 11,
-    MSP_MULTITYPE_OCTOFLATP = 12,
-    MSP_MULTITYPE_OCTOFLATX = 13,
-    MSP_MULTITYPE_AIRPLANE = 14,
-    MSP_MULTITYPE_HELI_120_CCPM = 15,
-    MSP_MULTITYPE_HELI_90_DEG = 16,
-    MSP_MULTITYPE_VTAIL4 = 17,
-};
+int msp_attitude(struct msp *msp, struct msp_attitude *att);
 
-#define MSP_IDENT_CAP_BIND    (1<<0)
-#define MSP_IDENT_CAP_DYNBAL  (1<<2)
-#define MSP_IDENT_CAP_FLAP    (1<<3)
+int msp_altitude(struct msp *msp, int32_t *alt);
 
-/*
- * get
- *   cycletime
- *   errors_count
- *   sensor present
- *   box activation
- *   current setting number
- */
-#define MSP_STATUS              101
+int msp_bat(struct msp *msp, struct msp_bat *bat);
 
-struct msp_status {
-    uint16_t cycle_time;
-    uint16_t i2c_errcnt;
-    uint16_t hwcaps;
-    uint32_t box;
-    uint8_t conf;
-} PACKED;
+int msp_box(struct msp *msp, uint16_t *box, int *cnt);
 
-#define MSP_STATUS_HWCAP_ACC     (1<<0)
-#define MSP_STATUS_HWCAP_BARO    (1<<1)
-#define MSP_STATUS_HWCAP_MAG     (1<<2)
-#define MSP_STATUS_HWCAP_GPS     (1<<3)
-#define MSP_STATUS_HWCAP_SONAR   (1<<4)
+int msp_boxids(struct msp *msp, uint8_t *boxids, size_t *len);
 
-#define MSP_STATUS_BOX_ACC       (1<<0)
-#define MSP_STATUS_BOX_BARO      (1<<1)
-#define MSP_STATUS_BOX_MAG       (1<<2)
-#define MSP_STATUS_BOX_CAMSTAB   (1<<3)
-#define MSP_STATUS_BOX_CAMTRIG   (1<<4)
-#define MSP_STATUS_BOX_ARM       (1<<5)
-#define MSP_STATUS_BOX_GPSHOME   (1<<6)
-#define MSP_STATUS_BOX_GPSHOLD   (1<<7)
-#define MSP_STATUS_BOX_PASSTHRU  (1<<8)
-#define MSP_STATUS_BOX_HEADFREE  (1<<9)
-#define MSP_STATUS_BOX_BEEPERON  (1<<10)
-#define MSP_STATUS_BOX_LEDMAX    (1<<11)
-#define MSP_STATUS_BOX_LLIGHTS   (1<<12)
-#define MSP_STATUS_BOX_HEADADJ   (1<<13)
+int msp_boxnames(struct msp *msp, char *names, size_t *len);
 
-/*
- * get
- *   9 DOF
- */
-#define MSP_RAW_IMU             102
+int msp_eeprom_write(struct msp *msp);
 
-struct msp_raw_imu {
-    int16_t acc[3];
-    int16_t gyr[3];
-    int16_t mag[3];
-};
+int msp_ident(struct msp *msp, struct msp_ident *ident);
 
-/*
- * get
- *   8 servos
- */
-#define MSP_SERVO               103
+int msp_mag_calibration(struct msp *msp);
 
-struct msp_servo {
-    int16_t ctl[8];
-};
+int msp_motor(struct msp *msp, struct msp_motor *motor);
 
-/*
- * get
- *   8 motors
- */
-#define MSP_MOTOR               104
+int msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins);
 
-struct msp_motor {
-    int16_t ctl[8];
-};
+int msp_raw_imu(struct msp *msp, struct msp_raw_imu *imu);
 
-/*
- * get
- *   8 rc chan and more
- */
-#define MSP_RC                  105
+int msp_rc(struct msp *msp, struct msp_raw_rc *rrc);
 
-enum msp_rc_chn {
-    MSP_CHN_ROLL       = 0,
-    MSP_CHN_PITCH      = 1,
-    MSP_CHN_YAW        = 2,
-    MSP_CHN_THROTTLE   = 3,
-    MSP_CHN_AUX1       = 4,
-    MSP_CHN_AUX2       = 5,
-    MSP_CHN_AUX3       = 6,
-    MSP_CHN_AUX4       = 7,
-};
+int msp_reset_conf(struct msp *msp);
 
-#define MSP_N_CHANNELS    8
+int msp_servo(struct msp *msp, struct msp_servo *servo);
 
-struct msp_raw_rc {
-    int16_t chn[MSP_N_CHANNELS];
-};
+int msp_set_box(struct msp *msp, uint16_t *items, int cnt);
 
-/*
- * get
- *      fix
- *      numsat
- *      lat
- *      lon
- *      alt
- *      speed
- *      ground course
- */
-#define MSP_RAW_GPS             106
+int msp_set_raw_rc(struct msp *msp, const struct msp_raw_rc *rrc);
 
-/*
- * get
- *      distance home
- *      direction home
- */
-#define MSP_COMP_GPS            107
+int msp_status(struct msp *msp, struct msp_status *st, size_t *len);
 
-/*
- * get
- *      2 angles 1 heading
- */
-#define MSP_ATTITUDE            108
+const char *msp_ident_multitype_name(enum msp_multitype type);
 
-struct msp_attitude {
-    int16_t roll;
-    int16_t pitch;
-    int16_t yaw;
-    int16_t yawtf;
-};
+const char *msp_ident_capability_name(int val);
 
-/*
- * get
- *      altitude
- *      variometer
- */
-#define MSP_ALTITUDE            109
+const char *msp_rc_chan_name(enum msp_rc_chn n);
 
-/*
- * get
- *      vbat
- *      powermetersum
- *      v2.2: rssi, if available on rx
- */
-#define MSP_BAT                 110
+const char *msp_status_box_name(struct msp *msp, int val);
 
-struct msp_bat {
-    uint8_t vbat;
-    uint16_t powermetersum;
-} PACKED;
-
-/*
- * get
- *      rc rate
- *      rc expo
- *      rollpitch rate
- *      yaw rate
- *      dyn throttle PID
- */
-#define MSP_RC_TUNING           111
-
-/*
- * get
- *      P I D coeff (9 are used currently)
- */
-#define MSP_PID                 112
-
-/*
- * BOX setup (number is dependant of your setup)
- */
-#define MSP_BOX                 113
-
-/*
- * get
- *      powermeter trig
- */
-#define MSP_MISC                114
-
-/*
- * get
- *   motor pins
- */
-#define MSP_MOTOR_PINS          115
-
-struct msp_motor_pins {
-    uint8_t pin[8];
-};
-
-/*
- *
- */
-#define MSP_BOXNAMES            116		//out message		the aux switch names
-
-/*
- *
- */
-#define MSP_PIDNAMES            117		//out message		the PID names
-
-/*
- *
- */
-#define MSP_WP                  118		//out message		get a WP, WP# is in the payload, returns (WP#, lat, lon, alt, flags) WP#0-home, WP#16-poshold
-
-/*
- *
- */
-#define MSP_BOXIDS              119		//out message		get the permanent IDs associated to BOXes
-
-/*
- *
- */
-#define MSP_SERVO_CONF          120		//out message		Servo settings
-
-
-/*
- * set
- *      8 rc chan
- */
-#define MSP_SET_RAW_RC          200
-
-/*
- * set
- *      fix
- *      numsat
- *      lat
- *      lon
- *      alt
- *      speed
- */
-#define MSP_SET_RAW_GPS         201
-
-/*
- * set
- *      P I D coeff (9 are used currently)
- */
-#define MSP_SET_PID             202
-
-/*
- * set
- *      BOX setup (number is dependant of your setup)
- */
-#define MSP_SET_BOX             203
-
-/*
- * set
- *      rc rate
- *      rc expo
- *      rollpitch rate
- *      yaw rate
- *      dyn throttle PID
- */
-#define MSP_SET_RC_TUNING       204
-
-/*
- * set
- *      (no param)
- */
-#define MSP_ACC_CALIBRATION     205
-
-/*
- * set
- *      (no param)
- */
-#define MSP_MAG_CALIBRATION     206
-
-/*
- * set
- *      powermeter trig
- *      8 free for future use
- */
-#define MSP_SET_MISC            207
-
-/*
- * set
- *      (no param)
- */
-#define MSP_RESET_CONF          208
-
-/*
- * set a given WP
- *      WP#
- *      lat
- *      lon
- *      alt
- *      flags
- */
-#define MSP_SET_WP              209
-
-/*
- * set
- *      selected setting number (0-2)
- */
-#define MSP_SELECT_SETTING      210
-
-/*
- * set
- *      heading hold direction
- */
-#define MSP_SET_HEAD            211
-
-/*
- * set
- *      servo settings
- */
-#define MSP_SET_SERVO_CONF      212
-
-/*
- * set
- *      propbalance function
- */
-#define MSP_SET_MOTOR           214
-
-/*
- * set
- *      no param
- */
-#define MSP_BIND                240
-
-/*
- * set
- */
-#define MSP_EEPROM_WRITE        250
-
-/*
- * out
- *      debug string buffer
- */
-#define MSP_DEBUGMSG            253
-
-/*
- * out
- *      debug1
- *      debug2
- *      debug3
- *      debug4
- */
-#define MSP_DEBUG               254
+const char *msp_status_hwcap_name(struct msp *msp, int val);
 
 #endif
 

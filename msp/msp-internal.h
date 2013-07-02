@@ -1,6 +1,8 @@
 #ifndef MSP_MSP_INTERNAL_H
 #define MSP_MSP_INTERNAL_H
 
+#include <msp/msp.h>
+
 #include <crt/tty.h>
 #include <crt/evtloop.h>
 
