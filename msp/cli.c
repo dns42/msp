@@ -244,9 +244,12 @@ static int
 msp_cli_rc(struct msp *msp)
 {
     struct msp_raw_rc rrc;
+    size_t len;
     int rc, i;
 
-    rc = msp_rc(msp, &rrc);
+    len = sizeof(rrc);
+
+    rc = msp_rc(msp, &rrc, &len);
     if (rc) {
         perror("msp_rrc");
         goto out;

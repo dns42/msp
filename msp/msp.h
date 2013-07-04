@@ -48,7 +48,7 @@ int msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins, size_t *len);
 
 int msp_raw_imu(struct msp *msp, struct msp_raw_imu *imu);
 
-int msp_rc(struct msp *msp, struct msp_raw_rc *rrc);
+int msp_rc(struct msp *msp, struct msp_raw_rc *rrc, size_t *len);
 
 int msp_reset_conf(struct msp *msp);
 

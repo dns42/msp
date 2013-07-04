@@ -539,7 +539,7 @@ out:
 }
 
 int
-msp_rc(struct msp *msp, struct msp_raw_rc *rrc)
+msp_rc(struct msp *msp, struct msp_raw_rc *rrc, size_t *_len)
 {
     int rc;
 
@@ -547,7 +547,7 @@ msp_rc(struct msp *msp, struct msp_raw_rc *rrc)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_RC, rrc, sizeof(*rrc));
+    rc = __msp_rsp_recv(msp, MSP_RC, rrc, _len);
 out:
     return rc;
 }
