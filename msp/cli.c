@@ -595,6 +595,9 @@ msp_cli_set_box(struct msp *msp, int argc, char **argv)
         arg = argv[optind];
         i = -1;
 
+        if (!strcmp(arg, "--"))
+            break;
+
         n = sscanf(arg, "%8[^:]:%hu", name, &val);
         if (n != 2)
             goto err;
@@ -632,7 +635,7 @@ msp_cli_set_box(struct msp *msp, int argc, char **argv)
 
     pos = names;
     for (i = 0; i < boxcnt; i++)
-        printf("box.%s(%d): %x\n",
+        printf("set-box.%s(%d): %x\n",
                namev[i], boxids[i], items[i]);
 
     rc = msp_set_box(msp, items, boxcnt);
