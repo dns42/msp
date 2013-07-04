@@ -52,7 +52,7 @@ int msp_rc(struct msp *msp, struct msp_raw_rc *rrc);
 
 int msp_reset_conf(struct msp *msp);
 
-int msp_servo(struct msp *msp, struct msp_servo *servo);
+int msp_servo(struct msp *msp, struct msp_servo *servo, size_t *len);
 
 int msp_set_box(struct msp *msp, uint16_t *items, int cnt);
 

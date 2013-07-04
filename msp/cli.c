@@ -271,9 +271,10 @@ static int
 msp_cli_servo(struct msp *msp)
 {
     struct msp_servo servo;
+    size_t len;
     int rc, i;
 
-    rc = msp_servo(msp, &servo);
+    rc = msp_servo(msp, &servo, &len);
     if (rc) {
         perror("msp_servo");
         goto out;

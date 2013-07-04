@@ -497,7 +497,7 @@ msp_status_box_name(struct msp *msp, int val)
 }
 
 int
-msp_servo(struct msp *msp, struct msp_servo *servo)
+msp_servo(struct msp *msp, struct msp_servo *servo, size_t *_len)
 {
     int rc;
 
@@ -505,7 +505,7 @@ msp_servo(struct msp *msp, struct msp_servo *servo)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_SERVO, servo, sizeof(*servo));
+    rc = __msp_rsp_recv(msp, MSP_SERVO, servo, _len);
 out:
     return rc;
 }
