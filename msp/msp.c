@@ -525,7 +525,7 @@ out:
 }
 
 int
-msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins)
+msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins, size_t *_len)
 {
     int rc;
 
@@ -533,7 +533,7 @@ msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_MOTOR_PINS, pins, sizeof(*pins));
+    rc = __msp_rsp_recv(msp, MSP_MOTOR_PINS, pins, _len);
 out:
     return rc;
 }

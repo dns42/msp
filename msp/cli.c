@@ -198,9 +198,12 @@ static int
 msp_cli_motor_pins(struct msp *msp)
 {
     struct msp_motor_pins pins;
+    size_t len;
     int rc, i;
 
-    rc = msp_motor_pins(msp, &pins);
+    len = sizeof(pins);
+
+    rc = msp_motor_pins(msp, &pins, &len);
     if (rc) {
         perror("msp_motor_pins");
         goto out;

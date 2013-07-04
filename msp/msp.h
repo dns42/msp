@@ -44,7 +44,7 @@ int msp_mag_calibration(struct msp *msp);
 
 int msp_motor(struct msp *msp, struct msp_motor *motor, size_t *len);
 
-int msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins);
+int msp_motor_pins(struct msp *msp, struct msp_motor_pins *pins, size_t *len);
 
 int msp_raw_imu(struct msp *msp, struct msp_raw_imu *imu);
 
