@@ -177,9 +177,12 @@ static int
 msp_cli_motor(struct msp *msp)
 {
     struct msp_motor motor;
+    size_t len;
     int rc, i;
 
-    rc = msp_motor(msp, &motor);
+    len = sizeof(motor);
+
+    rc = msp_motor(msp, &motor, &len);
     if (rc) {
         perror("msp_motor");
         goto out;
