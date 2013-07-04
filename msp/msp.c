@@ -357,7 +357,7 @@ out:
 }
 
 int
-msp_attitude(struct msp *msp, struct msp_attitude *att)
+msp_attitude(struct msp *msp, struct msp_attitude *att, size_t *_len)
 {
     int rc;
 
@@ -365,7 +365,7 @@ msp_attitude(struct msp *msp, struct msp_attitude *att)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_ATTITUDE, att, sizeof(*att));
+    rc = __msp_rsp_recv(msp, MSP_ATTITUDE, att, _len);
 out:
     return rc;
 }

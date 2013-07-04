@@ -24,7 +24,7 @@ int msp_rsp_recv(struct msp *msp,
 
 int msp_acc_calibration(struct msp *msp);
 
-int msp_attitude(struct msp *msp, struct msp_attitude *att);
+int msp_attitude(struct msp *msp, struct msp_attitude *att, size_t *len);
 
 int msp_altitude(struct msp *msp, struct msp_altitude *att, size_t *len);
 

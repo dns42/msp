@@ -58,9 +58,12 @@ static int
 msp_cli_attitude(struct msp *msp)
 {
     struct msp_attitude att;
+    size_t len;
     int rc;
 
-    rc = msp_attitude(msp, &att);
+    len = sizeof(att);
+
+    rc = msp_attitude(msp, &att, &len);
     if (rc) {
         perror("msp_attitude");
         goto out;
