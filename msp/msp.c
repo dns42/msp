@@ -241,7 +241,7 @@ out:
 }
 
 int
-msp_ident(struct msp *msp, struct msp_ident *ident)
+msp_ident(struct msp *msp, struct msp_ident *ident, size_t *_len)
 {
     int rc;
 
@@ -249,7 +249,7 @@ msp_ident(struct msp *msp, struct msp_ident *ident)
     if (rc)
         goto out;
 
-    rc = msp_rsp_recv(msp, MSP_IDENT, ident, sizeof(*ident));
+    rc = __msp_rsp_recv(msp, MSP_IDENT, ident, _len);
 out:
     return rc;
 }

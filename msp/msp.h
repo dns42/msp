@@ -38,7 +38,7 @@ int msp_boxnames(struct msp *msp, char *names, size_t *len);
 
 int msp_eeprom_write(struct msp *msp);
 
-int msp_ident(struct msp *msp, struct msp_ident *ident);
+int msp_ident(struct msp *msp, struct msp_ident *ident, size_t *len);
 
 int msp_mag_calibration(struct msp *msp);
 

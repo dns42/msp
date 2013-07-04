@@ -124,9 +124,12 @@ static int
 msp_cli_ident(struct msp *msp)
 {
     struct msp_ident ident;
+    size_t len;
     int rc, bit;
 
-    rc = msp_ident(msp, &ident);
+    len = sizeof(ident);
+
+    rc = msp_ident(msp, &ident, &len);
     if (rc) {
         perror("msp_ident");
         goto out;
