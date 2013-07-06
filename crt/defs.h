@@ -43,6 +43,10 @@
 #define __exitcall __attribute__((destructor))
 #endif
 
+#ifndef __printf
+#define __printf(_f, _a) __attribute__((format(printf, _f, _a)))
+#endif
+
 #define min(_a, _b) ((_a) < (_b) ? (_a) : (_b))
 #define max(_a, _b) ((_a) > (_b) ? (_a) : (_b))
 
