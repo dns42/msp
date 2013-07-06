@@ -273,6 +273,15 @@ out:
     return cnt;
 }
 
+void
+tty_rxflush(struct tty *tty)
+{
+    tty->prod = 0;
+    tty->cons = 0;
+
+    tcflush(tty->fd, TCIFLUSH);
+}
+
 static void
 tty_pollevt(int revents, void *data)
 {
@@ -282,7 +291,7 @@ tty_pollevt(int revents, void *data)
 
     if (!tty->buf || !tty->max || tty->err)
 
-        tcflush(tty->fd, TCIFLUSH);
+        tty_rxflush(tty);
 
     else {
         void *end;

@@ -19,6 +19,8 @@ void tty_setrxbuf(struct tty *tty, void *buf, size_t len);
 
 ssize_t tty_rxcnt(struct tty *tty);
 
+void tty_rxflush(struct tty *tty);
+
 ssize_t tty_recv(struct tty *tty, void *buf, size_t len);
 
 int tty_plug(struct tty *tty, struct evtloop *loop);
