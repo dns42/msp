@@ -3,6 +3,7 @@
 #endif
 
 #include <crt/tty-internal.h>
+#include <crt/evtloop.h>
 #include <crt/defs.h>
 
 #include <stdlib.h>
@@ -12,9 +13,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
-
-#include <crt/defs.h>
-#include <crt/evtloop.h>
 
 speed_t
 tty_speed(int arg)
