@@ -417,7 +417,7 @@ int msp_msg_encode_req(const struct msp_hdr *hdr, void *data);
 
 int msp_msg_decode_rsp(const struct msp_hdr *hdr, void *data);
 
-uint8_t msp_msg_checksum(const struct msp_hdr *hdr, const void *_data);
+uint8_t msp_msg_checksum(const struct msp_hdr *hdr, const void *data);
 
 const char * msp_cmd_name(msp_cmd_t cmd);
 
