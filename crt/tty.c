@@ -217,7 +217,7 @@ tty_setrxbuf(struct tty *tty, void *buf, size_t len)
 
 int
 tty_setrxcall(struct tty *tty, size_t cnt,
-              tty_rxfn fn, void *data)
+              tty_rxfn fn, void *priv)
 {
     int rc;
 
@@ -230,7 +230,7 @@ tty_setrxcall(struct tty *tty, size_t cnt,
 
     tty->rxcall.cnt = cnt;
     tty->rxcall.fn = fn;
-    tty->rxcall.data = data;
+    tty->rxcall.priv = priv;
 
     rc = 0;
 out:
@@ -251,7 +251,7 @@ tty_dorxcall(struct tty *tty)
         return;
 
     if (cnt) {
-        tty->rxcall.fn(tty, cnt, tty->rxcall.data);
+        tty->rxcall.fn(tty, tty->buf, cnt, tty->rxcall.priv);
         tty->rxcall.fn = NULL;
     }
 }

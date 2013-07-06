@@ -17,7 +17,7 @@ struct tty {
     struct {
         size_t cnt;
         tty_rxfn fn;
-        void *data;
+        void *priv;
     } rxcall;
 
     int err;

@@ -25,9 +25,9 @@ int tty_plug(struct tty *tty, struct evtloop *loop);
 
 void tty_unplug(struct tty *tty);
 
-typedef void (*tty_rxfn)(struct tty *tty, ssize_t cnt, void *data);
+typedef void (*tty_rxfn)(struct tty *tty, void *buf, ssize_t cnt, void *priv);
 
-int tty_setrxcall(struct tty *tty, size_t cnt, tty_rxfn fn, void *data);
+int tty_setrxcall(struct tty *tty, size_t cnt, tty_rxfn fn, void *priv);
 
 #endif
 
