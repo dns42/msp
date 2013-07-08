@@ -23,7 +23,12 @@ stddef.h dnl
 string.h dnl
 termios.h dnl
 unistd.h dnl
+netdb.h dnl
+syslog.h dnl
 sys/time.h dnl
+sys/socket.h dnl
+sys/ioctl.h dnl
+netinet/in.h dnl
 ])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -41,8 +46,17 @@ AC_TYPE_UINT32_T
 AC_CHECK_FUNCS([dnl
 gettimeofday dnl
 memset dnl
+memmove dnl
+strdup dnl
+strcasecmp dnl
+strncasecmp dnl
+strtol dnl
+strtoul dnl
+strerror dnl
 select dnl
 ])
+AC_FUNC_ALLOCA
+AC_FUNC_ERROR_AT_LINE
 
 AC_OUTPUT([
 Makefile
