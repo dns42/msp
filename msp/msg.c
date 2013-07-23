@@ -173,7 +173,7 @@ msp_set_box_req_enc(const struct msp_hdr *hdr, void *data)
         goto out;
     }
 
-    cnt = hdr->len % sizeof(*items);
+    cnt = hdr->len / sizeof(*items);
 
     for (i = 0; i < cnt; i++)
         items[i] = htoavr(items[i]);
