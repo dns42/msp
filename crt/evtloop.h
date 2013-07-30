@@ -2,7 +2,7 @@
 #define CRT_EVT_LOOP_H
 
 #include <poll.h>
-#include <sys/time.h>
+#include <crt/timer.h>
 
 struct evtloop * evtloop_create(void);
 
@@ -10,13 +10,13 @@ void evtloop_destroy(struct evtloop *main);
 
 int evtloop_iterate(struct evtloop *main);
 
-typedef void (*timerevt_fn)(const struct timeval *timeo, void *data);
+void evtloop_add_timer(struct evtloop *loop,
+                       struct timer *timer,
+                       const struct timeval *timeo);
 
-struct timerevt * evtloop_add_timer(struct evtloop *loop,
-                                    struct timeval timeo,
-                                    timerevt_fn fn, void *data);
-
-void timerevt_destroy(struct timerevt *timer);
+struct timer * evtloop_create_timer(struct evtloop *loop,
+                                    const struct timeval *timeo,
+                                    timer_fn fn, void *data);
 
 typedef void (*pollevt_fn)(int revents, void *data);
 

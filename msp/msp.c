@@ -57,7 +57,8 @@ static int
 msp_tty_recv(struct msp *msp,
              void *buf, size_t len, struct timeval timeo)
 {
-    struct timerevt *timer;
+    struct timer *timer;
+    struct timeval now;
     ssize_t n;
     int rc;
 
@@ -65,7 +66,10 @@ msp_tty_recv(struct msp *msp,
 
     tty_setrxbuf(msp->tty, buf, len);
 
-    timer = evtloop_add_timer(msp->loop, timeo, NULL, NULL);
+    gettimeofday(&now, NULL);
+    timeradd(&now, &timeo, &timeo);
+
+    timer = evtloop_create_timer(msp->loop, &timeo, NULL, NULL);
 
     do {
         rc = evtloop_iterate(msp->loop);
@@ -92,7 +96,7 @@ out:
     if (timer) {
         int err = errno;
 
-        timerevt_destroy(timer);
+        timer_destroy(timer);
 
         errno = err;
     }

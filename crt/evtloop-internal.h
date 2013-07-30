@@ -2,12 +2,13 @@
 #define CRT_EVTLOOP_INTERNAL_H
 
 #include <crt/evtloop.h>
+#include <crt/timer-internal.h>
 #include <crt/list.h>
 
 #include <sys/time.h>
 
 struct evtloop {
-    struct list timerevts;
+    struct timerwheel *timers;
     struct list pollevts;
 };
 
@@ -20,14 +21,8 @@ struct pollevt {
     struct list entry;
 };
 
-struct timerevt {
-    struct timeval itv;
-    struct timeval timeo;
-    timerevt_fn fn;
-    void *data;
-    struct evtloop *loop;
-    struct list entry;
-};
+void evtloop_schedule_timer(struct evtloop *loop,
+                            struct timer *timer);
 
 #endif
 

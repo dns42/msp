@@ -7,6 +7,9 @@ noinst_LTLIBRARIES  = libcrt.la
 
 libcrt_la_SOURCES  = defs.h
 libcrt_la_SOURCES += list.h
+libcrt_la_SOURCES += timer.c
+libcrt_la_SOURCES += timer.h
+libcrt_la_SOURCES += timer-internal.h
 libcrt_la_SOURCES += evtloop.c
 libcrt_la_SOURCES += evtloop.h
 libcrt_la_SOURCES += evtloop-internal.h
