@@ -73,6 +73,10 @@ tty_open(const char *path, speed_t speed)
     rc = tcflush(tty->fd, TCIFLUSH);
     if (unexpected(rc))
         goto out;
+
+    rc = tcflush(tty->fd, TCOFLUSH);
+    if (unexpected(rc))
+        goto out;
 out:
     if (rc) {
         tty_close(tty);
