@@ -211,7 +211,7 @@ out:
     if (buf && buf != data)
         free(buf);
 
-    if (rc && hdr.dsc) {
+    if (rc && errno != ENOSYS && hdr.dsc) {
         fprintf(stderr,
                 "%s rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
                 msp_cmd_name(cmd),
