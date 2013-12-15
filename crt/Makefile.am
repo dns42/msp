@@ -1,5 +1,6 @@
 
 AM_CFLAGS  = -Wmissing-prototypes
+AM_CFLAGS += -Wno-format-zero-length
 
 AM_CPPFLAGS  = -I$(top_srcdir)
 
