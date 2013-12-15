@@ -7,20 +7,22 @@
 #include <crt/tty.h>
 
 #include <sys/types.h>
+#include <sys/types.h>
 #include <termios.h>
 
 struct msp * msp_open(struct tty *tty, struct evtloop *loop);
 
 void msp_close(struct msp *msp);
 
-int msp_req_send(struct msp *msp,
-                 msp_cmd_t cmd, void *data, size_t len);
+typedef void (*msp_call_retfn)(int err,
+                               const struct msp_hdr *, void *data,
+                               void *priv);
 
-int __msp_rsp_recv(struct msp *msp,
-                   msp_cmd_t cmd, void *data, size_t *len);
+int msp_call(struct msp *msp,
+             msp_cmd_t cmd, void *args, size_t len,
+             msp_call_retfn rfn, void *priv, const struct timeval *timeo);
 
-int msp_rsp_recv(struct msp *msp,
-                 msp_cmd_t cmd, void *data, size_t len);
+void msp_sync(struct msp *msp, msp_cmd_t cmd);
 
 int msp_acc_calibration(struct msp *msp);
 

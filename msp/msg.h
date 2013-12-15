@@ -22,6 +22,7 @@ struct msp_hdr {
     msp_cmd_t cmd;
 } PACKED;
 
+#define MSP_CMD_MIN MSP_IDENT
 #define MSP_CMD_MAX UINT8_MAX
 #define MSP_LEN_MAX UINT8_MAX
 

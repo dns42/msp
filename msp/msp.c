@@ -9,6 +9,7 @@
 #include <msp/defs.h>
 
 #include <crt/defs.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,8 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <assert.h>
+
+static void msp_tty_return(struct msp *);
 
 void
 msp_close(struct msp *msp)
@@ -33,13 +36,13 @@ msp_open(struct tty *tty, struct evtloop *loop)
     rc = -1;
 
     msp = calloc(1, sizeof(*msp));
-    if (!msp) {
-        perror("calloc");
+    if (!expected(msp))
         goto out;
-    }
 
     msp->tty = tty;
     msp->loop = loop;
+
+    msp_tty_return(msp);
 
     rc = 0;
 out:
@@ -55,187 +58,409 @@ out:
     return msp;
 }
 
-static void
-msp_tty_timeo(const struct timeval *timeo, void *priv)
+static struct msp_call **
+msp_call_entry(struct msp *msp, msp_cmd_t cmd)
 {
-    int *err = priv;
-    *err = ETIMEDOUT;
+    assert(cmd >= MSP_CMD_MIN);
+    assert(cmd <= MSP_CMD_MAX);
+
+    return &msp->tab[MSP_TAB_IDX(cmd)];
+}
+
+static struct msp_call *
+msp_call_get(struct msp *msp, msp_cmd_t cmd)
+{
+    return *msp_call_entry(msp, cmd);
 }
 
 static void
-msp_tty_rxfn(struct tty *tty, int _err, void *priv)
+msp_call_set(struct msp *msp, msp_cmd_t cmd, struct msp_call *call)
 {
-    int *err = priv;
-    assert(_err != EAGAIN);
-    *err = _err;
+    *msp_call_entry(msp, cmd) = call;
 }
 
-static int
-msp_tty_recv(struct msp *msp,
-             void *buf, size_t len, struct timeval timeo)
+static void
+msp_call_clr(struct msp *msp, msp_cmd_t cmd)
 {
-    struct timer *timer;
-    struct timeval now;
-    struct iovec iov;
-    int rc, err;
+    msp_call_set(msp, cmd, NULL);
+}
 
-    rc = -1;
-    err = 0;
+static void
+__msp_call_timeo(const struct timeval *timeo, void *data)
+{
+    struct msp_call **tab = data, *call = *tab;
 
-    iov = (struct iovec) {
-        .iov_base = buf,
-        .iov_len = len
-    };
+    call->rfn(ETIMEDOUT, NULL, NULL, call->priv);
 
-    tty_setrxbuf(msp->tty, &iov, 1, msp_tty_rxfn, &err);
-    gettimeofday(&now, NULL);
-    timeradd(&now, &timeo, &timeo);
+    timer_destroy(call->timer);
+    call->timer = NULL;
+}
 
-    timer = evtloop_create_timer(msp->loop, &timeo, msp_tty_timeo, &err);
+static void
+__msp_call_destroy(struct msp_call *call)
+{
+    if (call->timer)
+        timer_destroy(call->timer);
+    free(call);
+}
 
-    err = EAGAIN;
-    do {
-        rc = evtloop_iterate(msp->loop);
-        if (rc < 0) {
-            perror("evtloop_iterate");
-            goto out;
-        }
-    } while (err == EAGAIN);
+static void
+msp_call_exit(struct msp *msp, msp_cmd_t cmd)
+{
+    struct msp_call *call;
 
-    rc = err ? -1 : 0;
-    if (rc)
-        errno = err;
-out:
-    if (timer) {
-        err = errno;
+    call = msp_call_get(msp, cmd);
+    if (call != NULL);
 
-        timer_destroy(timer);
+    msp_call_clr(msp, cmd);
 
-        errno = err;
+    __msp_call_destroy(call);
+}
+
+static struct msp_call *
+msp_call_init(struct msp *msp, msp_cmd_t cmd,
+              msp_call_retfn rfn, void *priv,
+              const struct timeval *timeo)
+{
+    struct msp_call *call;
+    struct timeval _timeo;
+    int rc;
+
+    call = msp_call_get(msp, cmd);
+
+    rc = unexpected(call) ? -1 : 0;
+    if (rc) {
+        errno = EBUSY;
+        goto out;
     }
 
-    return rc;
+    call = calloc(1, sizeof(*call));
+
+    rc = expected(call) ? 0 : -1;
+    if (rc)
+        goto out;
+
+    call->rfn = rfn;
+    call->priv = priv;
+
+    gettimeofday(&_timeo, NULL);
+    timeradd(&_timeo, timeo, &_timeo);
+
+    call->timer = evtloop_create_timer(msp->loop, &_timeo,
+                                       __msp_call_timeo,
+                                       msp_call_entry(msp, cmd));
+
+    rc = expected(call->timer) ? 0 : -1;
+    if (rc)
+        goto out;
+
+    msp_call_set(msp, cmd, call);
+out:
+    if (rc && call) {
+        __msp_call_destroy(call);
+        call = NULL;
+    }
+
+    return call;
+}
+
+static void
+msp_tty_recv_data(struct tty *tty, int err, void *priv)
+{
+    struct msp *msp;
+    const struct msp_hdr *hdr;
+    struct msp_call *call;
+    msp_call_retfn rfn;
+    void *data;
+    int rc;
+
+    msp = priv;
+    hdr = &msp->hdr;
+
+    data = NULL;
+    call = msp_call_get(msp, hdr->cmd);
+
+    rc = 0;
+
+    assert(call != NULL);
+
+    if (hdr->len) {
+        data = msp->iov[0].iov_base;
+
+        msp->cks ^= msp_msg_checksum(hdr, data);
+
+        rc = msp->cks ? -1 : 0;
+        if (rc) {
+            errno = unexpected(EBADMSG);
+            goto out;
+        }
+
+        rc = msp_msg_decode_rsp(hdr, data);
+    }
+
+out:
+    rfn = call->rfn;
+    priv = call->priv;
+
+    msp_call_exit(msp, hdr->cmd);
+
+    if (rc) {
+        hdr = NULL;
+        data = NULL;
+    }
+
+    rfn(rc ? errno : 0, hdr, data, priv);
+
+    msp_tty_return(msp);
+}
+
+static void
+msp_tty_recv_hdr(struct tty *tty, int err, void *priv)
+{
+    struct msp *msp;
+    struct msp_hdr *hdr;
+    struct msp_call *call;
+    int cnt;
+
+    msp = priv;
+    hdr = &msp->hdr;
+    call = NULL;
+
+    assert(msp->iov[0].iov_base == hdr);
+    assert(msp->iov[0].iov_len == sizeof(*hdr));
+
+    if (unexpected(hdr->tag[0] != '$' || hdr->tag[1] != 'M'))
+        goto bad;
+
+    if (unexpected(hdr->dsc != '!' && hdr->dsc != '>'))
+        goto bad;
+
+    call = msp_call_get(msp, hdr->cmd);
+    if (!expected(call))
+        goto bad;
+
+    cnt = 0;
+
+    if (hdr->len) {
+        struct iovec *iov = &msp->iov[0];
+
+        *iov = (struct iovec) {
+            .iov_base = malloc(hdr->len),
+            .iov_len = hdr->len
+        };
+
+        if (!expected(iov->iov_base)) {
+            err = expected(errno);
+            goto out;
+        }
+
+        cnt = 1;
+    }
+
+    msp->iov[cnt++] = (struct iovec) {
+        &msp->cks,
+        sizeof(msp->cks)
+    };
+
+    tty_setrxbuf(msp->tty, msp->iov, cnt, msp_tty_recv_data, msp);
+
+    return;
+
+bad:
+    err = EBADMSG;
+
+    error("%s cmd %d hdr %c%c%c len %u\n",
+          msp_cmd_name(hdr->cmd), hdr->cmd,
+          hdr->tag[0], hdr->tag[1], hdr->dsc,
+          hdr->len);
+out:
+    tty_rxflush(tty);
+}
+
+static void
+msp_tty_return(struct msp *msp)
+{
+    msp->iov[0] = (struct iovec) {
+        .iov_base = &msp->hdr,
+        .iov_len = sizeof(msp->hdr),
+    };
+
+    tty_setrxbuf(msp->tty, msp->iov, 1, msp_tty_recv_hdr, msp);
 }
 
 int
-msp_req_send(struct msp *msp,
-             msp_cmd_t cmd, void *data, size_t len)
+msp_call(struct msp *msp,
+         msp_cmd_t cmd, void *args, size_t len,
+         msp_call_retfn rfn, void *priv, const struct timeval *timeo)
 {
     struct msp_hdr hdr;
     struct iovec iov[3];
+    struct msp_call *call;
     uint8_t cks;
     int rc, cnt;
 
     cnt = 0;
     hdr = MSP_REQ_HDR(cmd, len);
 
-    iov[cnt++] = (struct iovec) { &hdr, sizeof(hdr) };
+    call = msp_call_init(msp, cmd, rfn, priv, timeo);
+
+    rc = expected(call) ? 0 : -1;
+    if (rc)
+        goto out;
+
+    iov[cnt++] = (struct iovec) {
+        .iov_base = &hdr,
+        .iov_len = sizeof(hdr)
+    };
 
     if (len) {
-        rc = msp_msg_encode_req(&hdr, data);
+        rc = msp_msg_encode_req(&hdr, args);
         if (unexpected(rc))
             goto out;
 
-        iov[cnt++] = (struct iovec) { data, len };
+        iov[cnt++] = (struct iovec) {
+            .iov_base = args,
+            .iov_len = len,
+        };
     }
 
-    cks = msp_msg_checksum(&hdr, data);
+    cks = msp_msg_checksum(&hdr, args);
 
-    iov[cnt++] = (struct iovec) { &cks, sizeof(cks) };
+    iov[cnt++] = (struct iovec) {
+        .iov_base = &cks,
+        .iov_len = sizeof(cks)
+    };
 
     rc = tty_sendv(msp->tty, iov, cnt);
 out:
+    if (rc) {
+        int err = errno;
+
+        if (call) {
+            msp_call_exit(msp, cmd);
+            call = NULL;
+        }
+
+        errno = err;
+    }
+
     return rc;
 }
 
-int
+void
+msp_sync(struct msp *msp, msp_cmd_t cmd)
+{
+    do {
+        struct msp_call *call;
+        int rc;
+
+        call = msp_call_get(msp, cmd);
+        if (!call)
+            break;
+
+        if (!call->timer)
+            break;
+
+        rc = evtloop_iterate(msp->loop);
+        if (rc)
+            break;
+
+    } while (1);
+}
+
+struct msp_sync {
+    int err;
+    void *data;
+    size_t len;
+};
+
+static void
+msp_sync_retfn(int err,
+               const struct msp_hdr *hdr,
+               void *data, void *priv)
+{
+    struct msp_sync *sync = priv;
+
+    assert(err != EAGAIN);
+    sync->err = err;
+
+    if (!sync->err) {
+        sync->len = hdr->len;
+        sync->data = data;
+    }
+}
+
+static int
+msp_req_send(struct msp *msp,
+             msp_cmd_t cmd, void *args, size_t len)
+{
+    struct msp_sync *sync;
+    int rc;
+
+    sync = calloc(1, sizeof(*sync));
+
+    rc = expected(sync) ? 0 : -1;
+    if (rc)
+        goto out;
+
+    rc = msp_call(msp, cmd, args, len,
+                  msp_sync_retfn, sync,
+                  &MSP_TIMEOUT);
+
+out:
+    if (rc && sync)
+        free(sync);
+
+    return rc;
+}
+
+static int
 __msp_rsp_recv(struct msp *msp,
                msp_cmd_t cmd, void *data, size_t *_len)
 {
-    struct msp_hdr hdr;
-    size_t len;
-    void *buf;
-    uint8_t cks;
+    struct msp_call *call;
+    struct msp_sync *sync;
     int rc;
 
-    len = *_len;
-    buf = NULL;
-    hdr.dsc = 0;
+    sync = NULL;
+    call = msp_call_get(msp, cmd);
 
-    rc = msp_tty_recv(msp, &hdr, sizeof(hdr), MSP_TIMEOUT);
+    rc = expected(call) ? 0 : -1;
     if (rc)
         goto out;
 
-    rc = -1;
+    sync = call->priv;
 
-    if (hdr.tag[0] != '$' || hdr.tag[1] != 'M')
-        goto out;
+    msp_sync(msp, cmd);
 
-    if (hdr.dsc != '!' && hdr.dsc != '>')
-        goto out;
+    call = NULL;
 
-    if (hdr.cmd != cmd)
-        goto out;
-
-    if (hdr.len) {
-        rc = -1;
-
-        buf = unlikely(hdr.len > len)
-            ? malloc(hdr.len)
-            : data;
-
-        if (!expected(buf))
-            goto out;
-
-        rc = msp_tty_recv(msp, buf, hdr.len, MSP_TIMEOUT);
-        if (rc)
-            goto out;
-    }
-
-    rc = msp_tty_recv(msp, &cks, 1, MSP_TIMEOUT);
-    if (rc)
-        goto out;
-
-    cks ^= msp_msg_checksum(&hdr, buf);
-
-    rc = cks ? -1 : 0;
+    rc = sync->err ? -1 : 0;
     if (rc) {
-        errno = EBADMSG;
+        errno = sync->err;
         goto out;
     }
 
-    if (hdr.dsc == '!') {
-        rc = -1;
-        errno = ENOSYS;
-        goto out;
+    if (data && sync->data) {
+        size_t len = min(*_len, sync->len);
+
+        memcpy(data, sync->data, len);
+
+        *_len = len;
     }
 
-    rc = msp_msg_decode_rsp(&hdr, buf);
-    if (rc)
-        goto out;
-
-    len = min(hdr.len, len);
-
-    if (buf != data)
-        memcpy(data, buf, len);
-
-    *_len = len;
 out:
-    if (buf && buf != data)
-        free(buf);
+    if (sync) {
+        if (sync->data)
+            free(sync->data);
 
-    if (rc && errno != ENOSYS && hdr.dsc) {
-        fprintf(stderr,
-                "%s rsp %c%c%c len %u/%zu cmd %u/%u cks %02x\n",
-                msp_cmd_name(cmd),
-                hdr.tag[0], hdr.tag[1], hdr.dsc,
-                hdr.len, len, hdr.cmd, cmd, cks);
+        free(sync);
     }
 
     return rc;
 }
 
-int
+static int
 msp_rsp_recv(struct msp *msp,
              msp_cmd_t cmd, void *data, size_t len)
 {
@@ -449,7 +674,6 @@ msp_set_raw_rc(struct msp *msp, struct msp_raw_rc *rrc)
         goto out;
 
     rc = msp_rsp_recv(msp, MSP_SET_RAW_RC, NULL, 0);
-
 out:
     return rc;
 }
@@ -521,7 +745,6 @@ int
 msp_set_box(struct msp *msp, uint16_t *items, int cnt)
 {
     int rc;
-
 
     rc = msp_req_send(msp, MSP_SET_BOX, items, cnt * sizeof(*items));
     if (rc)
