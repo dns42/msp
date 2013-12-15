@@ -15,21 +15,17 @@ int tty_send(struct tty *tty, const void *buf, size_t len);
 
 int tty_sendv(struct tty *tty, struct iovec *iov, int cnt);
 
-void tty_setrxbuf(struct tty *tty, void *buf, size_t len);
+typedef void (*tty_rx_fn)(struct tty *tty, int err, void *priv);
 
-ssize_t tty_rxcnt(struct tty *tty);
+void tty_setrxbuf(struct tty *tty,
+                  const struct iovec *iov, int cnt,
+                  tty_rx_fn rfn, void *priv);
 
 void tty_rxflush(struct tty *tty);
-
-ssize_t tty_recv(struct tty *tty, void *buf, size_t len);
 
 int tty_plug(struct tty *tty, struct evtloop *loop);
 
 void tty_unplug(struct tty *tty);
-
-typedef void (*tty_rxfn)(struct tty *tty, void *buf, ssize_t cnt, void *priv);
-
-int tty_setrxcall(struct tty *tty, size_t cnt, tty_rxfn fn, void *priv);
 
 #endif
 

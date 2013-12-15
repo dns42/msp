@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <assert.h>
 
 void
 msp_close(struct msp *msp)
@@ -60,49 +61,52 @@ msp_tty_timeo(const struct timeval *timeo, void *priv)
     *err = ETIMEDOUT;
 }
 
+static void
+msp_tty_rxfn(struct tty *tty, int _err, void *priv)
+{
+    int *err = priv;
+    assert(_err != EAGAIN);
+    *err = _err;
+}
+
 static int
 msp_tty_recv(struct msp *msp,
              void *buf, size_t len, struct timeval timeo)
 {
     struct timer *timer;
     struct timeval now;
-    ssize_t n;
+    struct iovec iov;
     int rc, err;
 
     rc = -1;
     err = 0;
 
-    tty_setrxbuf(msp->tty, buf, len);
+    iov = (struct iovec) {
+        .iov_base = buf,
+        .iov_len = len
+    };
 
+    tty_setrxbuf(msp->tty, &iov, 1, msp_tty_rxfn, &err);
     gettimeofday(&now, NULL);
     timeradd(&now, &timeo, &timeo);
 
     timer = evtloop_create_timer(msp->loop, &timeo, msp_tty_timeo, &err);
 
+    err = EAGAIN;
     do {
         rc = evtloop_iterate(msp->loop);
         if (rc < 0) {
             perror("evtloop_iterate");
             goto out;
         }
+    } while (err == EAGAIN);
 
-        rc = err ? -1 : 0;
-        if (rc) {
-            errno = err;
-            goto out;
-        }
-
-        n = tty_rxcnt(msp->tty);
-        if (n < 0) {
-            perror("tty_rxcnt");
-            goto out;
-        }
-    } while (n < len);
-
-    rc = 0;
+    rc = err ? -1 : 0;
+    if (rc)
+        errno = err;
 out:
     if (timer) {
-        int err = errno;
+        err = errno;
 
         timer_destroy(timer);
 

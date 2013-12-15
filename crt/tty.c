@@ -5,6 +5,7 @@
 #include <crt/tty-internal.h>
 #include <crt/evtloop.h>
 #include <crt/defs.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -106,8 +107,10 @@ tty_send(struct tty *tty, const void *buf, size_t len)
     rc = -1;
 
     n = write(tty->fd, buf, len);
-    if (n < 0)
+    if (n < 0) {
+        log_perror("write");
         goto out;
+    }
 
     assert(n == len);
     rc = 0;
@@ -125,7 +128,7 @@ tty_sendv(struct tty *tty, struct iovec *iov, int cnt)
 
     n = writev(tty->fd, iov, cnt);
     if (n < 0) {
-        perror("writev");
+        log_perror("writev");
         goto out;
     }
 
@@ -142,147 +145,24 @@ out:
     return rc;
 }
 
-ssize_t
-tty_recv(struct tty *tty, void *buf, size_t len)
-{
-    unsigned int p, c;
-    ssize_t cnt;
-    size_t n;
-
-    cnt = tty_rxcnt(tty);
-    if (cnt < 0)
-        goto out;
-
-    cnt = min(cnt, len);
-    if (!cnt)
-        goto out;
-
-    p = tty->prod % tty->max;
-    c = tty->cons % tty->max;
-
-    if (p < c) {
-        n = tty->max - p;
-        n = min(n, len);
-
-        if (n) {
-            memcpy(buf, tty->buf + c, n);
-
-            tty->cons += n;
-
-            len -= n;
-            if (len)
-                c = 0;
-        }
-    }
-
-    if (len) {
-        n = tty->prod - tty->cons;
-        n = min(n, len);
-
-        if (n) {
-            memcpy(buf, tty->buf + c, n);
-
-            tty->cons += n;
-        }
-    }
-
-out:
-    return cnt;
-}
-
-static void
-tty_evt_enable(struct tty *tty, int enable)
-{
-    pollevt_select(tty->evt, enable ? POLLIN : 0);
-}
-
-static void
-tty_error(struct tty *tty, int err)
-{
-    tty->err = expected(errno);
-
-    tty_evt_enable(tty, 0);
-}
-
 void
-tty_setrxbuf(struct tty *tty, void *buf, size_t len)
+tty_setrxbuf(struct tty *tty,
+             const struct iovec *iov, int cnt,
+             tty_rx_fn rfn, void *priv)
 {
-    assert(!buf || len > 0);
-    expected(!len || buf);
+    tty->iov = iov;
+    tty->cnt = cnt;
+    tty->off = 0;
 
-    tty->buf = buf;
-    tty->max = len;
+    tty->rfn = rfn;
+    tty->priv = priv;
 
-    tty->prod = 0;
-    tty->cons = 0;
-
-    tty_evt_enable(tty, !!tty->max);
-}
-
-int
-tty_setrxcall(struct tty *tty, size_t cnt,
-              tty_rxfn fn, void *priv)
-{
-    int rc;
-
-    rc = -1;
-
-    if (unexpected(cnt > tty->max)) {
-        errno = EOVERFLOW;
-        goto out;
-    }
-
-    tty->rxcall.cnt = cnt;
-    tty->rxcall.fn = fn;
-    tty->rxcall.priv = priv;
-
-    rc = 0;
-out:
-    return rc;
-}
-
-static void
-tty_dorxcall(struct tty *tty)
-{
-    ssize_t cnt;
-
-    if (!tty->rxcall.fn)
-        return;
-
-    cnt = tty_rxcnt(tty);
-
-    if (cnt >= 0 && cnt < tty->rxcall.cnt)
-        return;
-
-    if (cnt) {
-        tty->rxcall.fn(tty, tty->buf, cnt, tty->rxcall.priv);
-        tty->rxcall.fn = NULL;
-    }
-}
-
-ssize_t
-tty_rxcnt(struct tty *tty)
-{
-    ssize_t cnt;
-
-    cnt = tty->prod - tty->cons;
-    if (cnt)
-        goto out;
-
-    if (tty->err) {
-        errno = tty->err;
-        cnt = -1;
-    }
-out:
-    return cnt;
+    pollevt_select(tty->evt, tty->cnt ? POLLIN : 0);
 }
 
 void
 tty_rxflush(struct tty *tty)
 {
-    tty->prod = 0;
-    tty->cons = 0;
-
     tcflush(tty->fd, TCIFLUSH);
 }
 
@@ -290,52 +170,71 @@ static void
 tty_pollevt(int revents, void *data)
 {
     struct tty *tty = data;
+    int err;
 
     assert(revents == POLLIN);
+    assert(tty->iov != NULL);
+    assert(tty->cnt);
 
-    if (!tty->buf || !tty->max || tty->err)
+    err = 0;
 
-        tty_rxflush(tty);
+    if (tty->off) {
+        const struct iovec *iov;
+        ssize_t n;
 
-    else {
-        void *end;
+        iov = tty->iov;
 
-        end = tty->buf + tty->max;
+        n = read(tty->fd,
+                 iov->iov_base + tty->off,
+                 iov->iov_len - tty->off);
+        if (n < 0) {
+            if (errno != EAGAIN) {
+                err = expected(errno);
+                log_perror("read");
+            }
+            goto out;
+        }
 
-        do {
-            size_t max;
-            void *pos;
-            ssize_t n;
+        expected(n > 0);
 
-            max = tty->max + tty->cons - tty->prod;
-            if (!max) {
-                tty_evt_enable(tty, 0);
+        tty->off += n;
+
+        if (tty->off == tty->iov->iov_len) {
+            tty->off = 0;
+            tty->iov++;
+            tty->cnt--;
+        } else
+            goto out;
+    }
+
+    if (tty->cnt) {
+        ssize_t n;
+
+        n = readv(tty->fd, tty->iov, tty->cnt);
+        if (n < 0) {
+            if (errno != EAGAIN) {
+                log_perror("readv");
+                err = expected(errno);
+            }
+            goto out;
+        }
+
+        while (n) {
+            if (n < tty->iov->iov_len) {
+                tty->off = n;
                 break;
             }
 
-            pos = tty->buf + tty->prod % tty->max;
-            max = min(max, end - pos);
+            n -= tty->iov->iov_len;
+            tty->iov++;
+            tty->cnt--;
+        }
+    }
 
-            if (!max) {
-                tcflush(tty->fd, TCIFLUSH);
-                tty_error(tty, EOVERFLOW);
-                break;
-            }
-
-            n = read(tty->fd, pos, max);
-            if (n < 0) {
-                if (errno != EAGAIN) {
-                    perror("read");
-                    tty_error(tty, errno);
-                }
-                break;
-            } else {
-                assert(n > 0);
-                tty->prod += n;
-            }
-        } while (1);
-
-        tty_dorxcall(tty);
+out:
+    if (err || !tty->cnt) {
+        pollevt_select(tty->evt, 0);
+        tty->rfn(tty, err, tty->priv);
     }
 }
 

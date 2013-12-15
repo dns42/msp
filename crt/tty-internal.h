@@ -8,19 +8,12 @@ struct tty {
     int fd;
     struct pollevt *evt;
 
-    void *buf;
-    size_t max;
+    const struct iovec *iov;
+    int cnt;
+    size_t off;
 
-    unsigned int prod;
-    unsigned int cons;
-
-    struct {
-        size_t cnt;
-        tty_rxfn fn;
-        void *priv;
-    } rxcall;
-
-    int err;
+    tty_rx_fn rfn;
+    void *priv;
 };
 
 #endif
