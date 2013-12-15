@@ -9,8 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
-static char log_prefix[] = {`
+static char log_prio[] = {
     [LOG_ALERT] = 'A',
     [LOG_CRIT] = 'C',
     [LOG_ERR] = 'E',
@@ -19,9 +18,9 @@ static char log_prefix[] = {`
     [LOG_INFO]= 'I',
     [LOG_DEBUG] = 'D',
 };
-#endif
 
 static struct log_target *log_target = NULL;
+static struct timeval log_start;
 
 int
 log_open(const char *desc, struct evtloop *loop)
@@ -103,14 +102,26 @@ log_vprintf(const struct log_hdr *hdr, const char *fmt, va_list ap)
     log = log_target;
 
     if (log) {
+        struct timeval now, t;
         int n;
 
-        n = 0;
-        if (n < sizeof(buf))
-            n += vsnprintf(buf + n, sizeof(buf), fmt, ap);
+        gettimeofday(&now, NULL);
+        timersub(&now, &log_start, &t);
 
-        if (n >= sizeof(buf))
-            strcpy(buf + sizeof(buf) - strlen("...") - 1, "...");
+        n = 0;
+
+        if (n < sizeof(buf))
+            n += snprintf(buf + n, sizeof(buf) - n,
+                          "%lu.%06lu:%c:%s:", t.tv_sec, t.tv_usec,
+                          log_prio[hdr->prio], hdr->func);
+
+        if (n < sizeof(buf))
+            n += vsnprintf(buf + n, sizeof(buf) - n, fmt, ap);
+
+        if (n >= sizeof(buf)) {
+            char e[] = "...";
+            strcpy(buf + sizeof(buf) - sizeof(e), e);
+        }
 
         log->iface->write(log->priv, hdr->prio, buf);
     }
@@ -129,6 +140,8 @@ log_printf(const struct log_hdr *hdr, const char *fmt, ...)
 static void __initcall
 liblog_init(void)
 {
+    gettimeofday(&log_start, NULL);
+
     log_open("stdio:/dev/stderr", NULL);
 }
 

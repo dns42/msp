@@ -38,6 +38,9 @@ void log_printf(const struct log_hdr *hdr, const char *fmt, ...)
 #define info(_fmt, _args ...)                           \
     log_printf(&LOG_HDR(LOG_INFO), _fmt, ##_args)
 
+#define debug(_fmt, _args ...)                          \
+    log_printf(&LOG_HDR(LOG_DEBUG), _fmt, ##_args)
+
 #define log_perror(_fmt, _args ...)                     \
     do {                                                \
         int __err = errno;                              \
