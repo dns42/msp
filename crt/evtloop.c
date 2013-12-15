@@ -112,6 +112,8 @@ evtloop_iterate(struct evtloop *loop)
 
     nfds = -1;
     list_for_each_entry(&loop->pollevts, evt, entry) {
+        if (!evt->events)
+            continue;
 
         if (evt->events & POLLIN)
             FD_SET(evt->fd, &rfds);
