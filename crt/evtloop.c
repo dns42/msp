@@ -139,11 +139,11 @@ out:
     rc = nfds;
 
     if (nfds == 0) {
-
         gettimeofday(&now, NULL);
         timerwheel_run(loop->timers, &now);
+    }
 
-    } else {
+    if (nfds > 0) {
         list_for_each_entry(&loop->pollevts, evt, entry) {
             int revents = 0;
 
