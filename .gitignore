@@ -2,6 +2,7 @@ Makefile
 Makefile.in
 install-sh
 aclocal.m4
+ar-lib
 autom4te.cache/
 autoscan.log
 config.guess
@@ -23,4 +24,5 @@ msp-*.tar.gz
 cscope.*
 *.o
 *.lo
+*.la
 *~
