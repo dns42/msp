@@ -121,7 +121,7 @@ evtloop_iterate(struct evtloop *loop)
         if (evt->events & POLLOUT)
             FD_SET(evt->fd, &wfds);
 
-        nfds = evt->fd > nfds ? evt->fd : nfds;
+        nfds = max(nfds, evt->fd);
     }
 
     if (timeo) {
