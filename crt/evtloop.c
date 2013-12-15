@@ -132,12 +132,7 @@ evtloop_iterate(struct evtloop *loop)
     nfds = select(nfds + 1, &rfds, &wfds, NULL, timeo);
 
     rc = nfds < 0 ? -1 : 0;
-    if (rc)
-        goto out;
-
 out:
-    rc = nfds;
-
     if (nfds == 0) {
         gettimeofday(&now, NULL);
         timerwheel_run(loop->timers, &now);
