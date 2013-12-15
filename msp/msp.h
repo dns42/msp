@@ -60,16 +60,6 @@ int msp_set_raw_rc(struct msp *msp, struct msp_raw_rc *rrc);
 
 int msp_status(struct msp *msp, struct msp_status *st, size_t *len);
 
-const char *msp_ident_multitype_name(enum msp_multitype type);
-
-const char *msp_ident_capability_name(int val);
-
-const char *msp_rc_chan_name(enum msp_rc_chn n);
-
-const char *msp_status_box_name(struct msp *msp, int val);
-
-const char *msp_status_hwcap_name(struct msp *msp, int val);
-
 #endif
 
 /*

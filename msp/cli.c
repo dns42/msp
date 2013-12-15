@@ -3,6 +3,7 @@
 #endif
 
 #include <msp/msp.h>
+#include <msp/str.h>
 #include <msp/defs.h>
 
 #include <crt/defs.h>
@@ -417,14 +418,14 @@ msp_cli_status(struct msp *msp)
                st.hwcaps, st.hwcaps ? " (" : "\n");
         for_each_bit(bit, &st.hwcaps)
         printf("%s%s",
-               msp_status_hwcap_name(msp, bit) ? : "?",
+               msp_status_hwcap_name(bit) ? : "?",
                bit == st.hwcaps ? ")\n" : ", ");
 
         printf("status.box: %#x%s",
                st.box, st.box ? " (" : "\n");
         for_each_bit(bit, &st.box)
             printf("%s%s",
-                   msp_status_box_name(msp, bit) ? : "?",
+                   msp_status_box_name(bit) ? : "?",
                    bit == st.box ? ")\n" : ", ");
     }
 
