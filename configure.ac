@@ -7,7 +7,6 @@ AC_CONFIG_SRCDIR([msp/msp.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall foreign])
-LT_INIT
 
 # Checks for programs.
 AC_LANG_WERROR
@@ -15,6 +14,7 @@ AC_PROG_CC
 AM_PROG_AR
 
 # Checks for libraries.
+LT_INIT
 
 # Checks for header files.
 AC_CHECK_HEADERS([dnl
