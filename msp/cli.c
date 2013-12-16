@@ -4,6 +4,7 @@
 
 #include <msp/msp.h>
 #include <msp/str.h>
+#include <msp/cmd.h>
 #include <msp/defs.h>
 
 #include <crt/defs.h>

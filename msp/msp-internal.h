@@ -6,8 +6,6 @@
 #include <crt/tty.h>
 #include <crt/evtloop.h>
 
-#define MSP_TIMEOUT (struct timeval) { 1, 0 }
-
 #define MSP_TAB_SIZE (MSP_CMD_MAX - MSP_CMD_MIN)
 #define MSP_TAB_IDX(_cmd) (_cmd - MSP_CMD_MIN)
 
@@ -25,6 +23,8 @@ struct msp {
     struct msp_hdr hdr;
     uint8_t cks;
 };
+
+struct msp_call *msp_call_get(struct msp *, msp_cmd_t);
 
 #endif
 

@@ -24,6 +24,8 @@ libmsp_include_HEADERS += str.h
 
 bin_PROGRAMS  = msp
 
-msp_SOURCES = cli.c
+msp_SOURCES  = cmd.c
+msp_SOURCES += cmd.h
+msp_SOURCES += cli.c
 
 msp_LDADD  = libmsp.la
