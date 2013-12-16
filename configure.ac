@@ -12,6 +12,7 @@ AM_INIT_AUTOMAKE([-Wall foreign])
 AC_LANG_WERROR
 AC_PROG_CC
 AM_PROG_AR
+AC_PROG_RANLIB
 
 # Checks for libraries.
 LT_INIT
@@ -56,6 +57,7 @@ strtoul dnl
 strerror dnl
 select dnl
 ])
+AC_FUNC_MALLOC
 AC_FUNC_ALLOCA
 AC_FUNC_ERROR_AT_LINE
 
