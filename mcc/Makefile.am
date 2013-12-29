@@ -31,7 +31,6 @@ mcc_SOURCES += mcc-lua.c
 include $(top_srcdir)/mk/lua.mk
 
 mcc_LDADD  = object.lbc.o
-mcc_LDADD += rc.lbc.o
 mcc_LDADD += js.lbc.o
 mcc_LDADD += nrx.lbc.o
 mcc_LDADD += ntx.lbc.o

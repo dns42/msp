@@ -94,22 +94,6 @@ static const struct luaL_reg base_f [] = {
 };
 
 static int
-luaopen_rc(struct lua_State *L)
-{
-    int rc;
-
-    rc = luaL_loadbuffer(L,
-                         MCC_LUA_START(rc),
-                         MCC_LUA_LEN(rc),
-                         "rc.lua");
-    assert(!rc);
-
-    lua_call(L, 0, 0);
-
-    return 0;
-}
-
-static int
 lua_libinit(struct lua_State *L)
 {
     extern struct mcc_init_luaopen __start_lua_init, __stop_lua_init;
@@ -120,7 +104,6 @@ lua_libinit(struct lua_State *L)
     lua_pop(L, 1);
 
     luaopen_object(L);
-    luaopen_rc(L);
 
     for (p = &__start_lua_init;
          p < &__stop_lua_init;
