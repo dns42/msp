@@ -3,33 +3,37 @@
 
 #include <mcc/js.h>
 
-struct js_sig {
-    js_evt_fn fn;
-    void *data;
-    int pending;
+struct js_button {
+    int val;
+    struct event *pressed;
+    struct event *released;
+    struct event *changed;
 };
 
-struct js_ctlv {
-    int cnt;
-    int *val;
-    struct js_sig *sig;
-};
+struct js_axis {
+    int val;
+    struct event *changed;
+} *axes;
 
 struct js {
     int fd;
     char *name;
     struct pollevt *evt;
-    struct js_ctlv ctls[JS_N_CTL_TYPES];
+
+    int naxes;
+    struct js_axis *axes;
+
+    int nbuttons;
+    struct js_button *buttons;
 };
 
 #define js_foreach_ctl(_js, _type, _idx)        \
-    for (_idx = 0; _idx < (_js)->ctls[_type].cnt; _idx++)
 
 #define js_foreach_button(_js, _idx)            \
-    js_foreach_ctl(_js, JS_BUTTON, _idx)
+    for (_idx = 0; _idx < (_js)->nbuttons; _idx++)
 
 #define js_foreach_axis(_js, _idx)              \
-    js_foreach_ctl(_js, JS_BUTTON, _idx)
+    for (_idx = 0; _idx < (_js)->naxes; _idx++)
 
 #endif
 

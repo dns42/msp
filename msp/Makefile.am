@@ -14,6 +14,7 @@ libmsp_la_SOURCES += msg-internal.h
 libmsp_la_SOURCES += msp.c
 libmsp_la_SOURCES += msp-internal.h
 libmsp_la_SOURCES += str.c
+libmsp_la_SOURCES += meta.c
 
 libmsp_la_LIBADD  = ../crt/libcrt.la
 
@@ -22,7 +23,7 @@ libmsp_includedir = $(includedir)/msp
 libmsp_include_HEADERS  = msg.h
 libmsp_include_HEADERS += msp.h
 libmsp_include_HEADERS += str.h
-libmsp_include_HEADERS += dispatch.h
+libmsp_include_HEADERS += meta.h
 
 bin_PROGRAMS  = msp
 

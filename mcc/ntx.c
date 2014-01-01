@@ -3,7 +3,7 @@
 #endif
 
 #include <mcc/ntx-internal.h>
-#include <mcc/nrxrpc.h>
+#include <mcc/nrx_rpc.h>
 
 #include <crt/log.h>
 
@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 struct ntx *
-ntx_connect(struct sockaddr_in *addr, unsigned long vers)
+ntx_open(struct sockaddr_in *addr, unsigned long vers)
 {
     struct ntx *ntx;
     struct timeval wait;
@@ -25,7 +25,7 @@ ntx_connect(struct sockaddr_in *addr, unsigned long vers)
         goto out;
     }
 
-    vers = vers ? : NRXv1;
+    vers = vers ? : NRX_V1;
 
     ntx = calloc(1, sizeof(*ntx));
 
@@ -108,14 +108,13 @@ ntx_send(struct ntx *ntx, uint16_t *val, int len)
 
     timeo = (struct timeval) { 0, 0 };
 
-    cs = clnt_call(ntx->clnt, NRXv1_RC,
+    cs = clnt_call(ntx->clnt, NRX1_RC,
                    (xdrproc_t) xdr_NRXv1_RCarg, arg,
-                   NULL, NULL,
-                   timeo);
+                   NULL, NULL, timeo);
 
-    rc = expected(cs == RPC_SUCCESS) ? 0 : -1;
+    rc = expected(cs == RPC_TIMEDOUT) ? 0 : -1;
     if (rc)
-        warn("unexpected clnt_stat %d", rc);
+        warn("unexpected clnt_stat %d", cs);
 }
 
 /*

@@ -27,6 +27,11 @@ mcc_SOURCES += mcc.c
 mcc_SOURCES += mcc.h
 mcc_SOURCES += mcc-internal.h
 mcc_SOURCES += mcc-lua.c
+mcc_SOURCES += rcvec.c
+mcc_SOURCES += rcvec.h
+mcc_SOURCES += rcvec.lua
+mcc_SOURCES += msp-lua.c
+mcc_SOURCES += rmi-lua.c
 
 include $(top_srcdir)/mk/lua.mk
 
@@ -34,28 +39,35 @@ mcc_LDADD  = object.lbc.o
 mcc_LDADD += js.lbc.o
 mcc_LDADD += nrx.lbc.o
 mcc_LDADD += ntx.lbc.o
+mcc_LDADD += rcvec.lbc.o
+mcc_LDADD += msp.lbc.o
+mcc_LDADD += rmi.lbc.o
 mcc_LDADD += $(top_builddir)/crt/libcrt.la
+mcc_LDADD += $(top_builddir)/msp/libmsp.la
 mcc_LDADD += $(LUA_LIBS)
 mcc_LDADD += $(noinst_LTLIBRARIES)
 
 include $(top_srcdir)/mk/rpc.mk
 
-noinst_LTLIBRARIES  = libnrxrpc.la
+noinst_LTLIBRARIES  = libmccrpc.la
 
-nodist_libnrxrpc_la_SOURCES  = nrxrpc.h
-nodist_libnrxrpc_la_SOURCES += nrxrpc_xdr.c
+nodist_libmccrpc_la_SOURCES  = nrx_rpc.h
+nodist_libmccrpc_la_SOURCES += nrx_rpc_xdr.c
+nodist_libmccrpc_la_SOURCES += rmi_rpc.h
+nodist_libmccrpc_la_SOURCES += rmi_rpc_xdr.c
 
-libnrxrpc_la_CFLAGS  = $(AM_CFLAGS)
-libnrxrpc_la_CFLAGS += -Wno-unused-variable
+libmccrpc_la_CFLAGS  = $(AM_CFLAGS)
+libmccrpc_la_CFLAGS += -Wno-unused-variable
 
-libnrxrpc_la_CPPFLAGS  = $(AM_CPPFLAGS)
-libnrxrpc_la_CPPFLAGS += -I$(builddir)
+libmccrpc_la_CPPFLAGS  = $(AM_CPPFLAGS)
+libmccrpc_la_CPPFLAGS += -I$(builddir)
 
 EXTRA_DIST  = nrxrpc.x
 EXTRA_DIST += rc.lua
 EXTRA_DIST += tx.lua
 EXTRA_DIST += js.lua
 EXTRA_DIST += object.lua
+EXTRA_DIST += msp.lua
 
 CLEANFILES  = *.lbc.o
 CLEANFILES += $(nodist_libnrxrpc_la_SOURCES)

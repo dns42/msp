@@ -174,12 +174,8 @@ lua_netrx_tostring(struct lua_State *L)
         const char *name;
 
         lua_netrx_sockname(L);
-
         name = lua_tostring(L, -1);
-        if (name) {
-            lua_pop(L, 1);
-            lua_pushfstring(L, "NetRX ('%s')", name);
-        }
+        lua_pushfstring(L, "NetRX ('%s')", name);
     } else
         lua_pushstring(L, "NetRX (closed)");
 

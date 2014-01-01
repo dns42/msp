@@ -7,6 +7,7 @@
 
 #include <crt/log.h>
 #include <crt/list.h>
+#include <crt/event.h>
 
 #include <assert.h>
 #include <sys/types.h>
@@ -17,14 +18,14 @@ struct lua_Joystick {
 };
 
 struct lua_JoystickEvent {
+    struct event *c;
+
     struct lua_State *L;
     struct lua_Joystick *J;
 
-    struct list entry;
     enum js_ctl_type type;
     int idx;
 
-    int jsr; /** registry joystick ref */
     int fnr; /** registry callback ref */
     int evr; /** registry event ref */
 };
@@ -33,9 +34,6 @@ static struct lua_Joystick *
 lua_joystick_check(struct lua_State *L, int n)
 {
     struct lua_Joystick *J;
-
-    lua_getmetatable(L, -1);
-    lua_pop(L, 1);
 
     J = luaL_checkudata(L, n, "Joystick");
     luaL_argcheck(L, J != NULL, n, "`Joystick' expected");
@@ -117,9 +115,9 @@ __lua_joystick_event_disconnect(struct lua_JoystickEvent *evt)
 
     L = evt->L;
 
-    if (evt->type) {
-        js_evt_disconnect(evt->J->c, evt->type, evt->idx);
-        evt->type = 0;
+    if (evt->c) {
+        event_destroy(evt->c);
+        evt->c = NULL;
     }
 
     if (evt->fnr >= 0) {
@@ -164,9 +162,7 @@ lua_joystick_event_tostring(struct lua_State *L)
 }
 
 static void
-__lua_joystick_js_event(struct js *js,
-                        enum js_ctl_type type, int idx, int val,
-                        void *data)
+__lua_joystick_js_event(void *data, va_list ap)
 {
     struct lua_JoystickEvent *evt;
     struct lua_State *L;
@@ -175,10 +171,9 @@ __lua_joystick_js_event(struct js *js,
     L = evt->L;
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, evt->fnr);
-    lua_rawgeti(L, LUA_REGISTRYINDEX, evt->jsr);
-    lua_pushnumber(L, type);
-    lua_pushnumber(L, idx);
-    lua_pushnumber(L, val);
+    lua_pushnumber(L, va_arg(ap, enum js_ctl_type));
+    lua_pushnumber(L, va_arg(ap, int));
+    lua_pushnumber(L, va_arg(ap, int));
     lua_call(L, 4, 0);
 }
 
@@ -186,21 +181,25 @@ static int
 lua_joystick_connect(struct lua_State *L)
 {
     struct lua_Joystick *J;
+    const char *change;
     enum js_ctl_type type;
     int idx;
 
     J = lua_joystick_check(L, 1);
     type = luaL_checknumber(L, 2);
     idx = luaL_checknumber(L, 3);
-    luaL_checktype(L, 4, LUA_TFUNCTION);
+    change = luaL_checkstring(L, 4);
+    luaL_checktype(L, 5, LUA_TFUNCTION);
 
-    if (expected(J->c)) {
+    if (!expected(J->c)) {
         struct lua_JoystickEvent *evt;
-        int rc;
+        struct event *event;
 
         evt = lua_newuserdata(L, sizeof(*evt));
         evt->L = L;
         evt->J = J;
+        evt->type = type;
+        evt->idx = idx;
         evt->fnr = -1;
         evt->evr = -1;
 
@@ -209,18 +208,10 @@ lua_joystick_connect(struct lua_State *L)
 
         evt->evr = luaL_ref(L, LUA_REGISTRYINDEX);
         evt->fnr = luaL_ref(L, LUA_REGISTRYINDEX);
-        lua_settop(L, 1);
-        evt->jsr = luaL_ref(L, LUA_REGISTRYINDEX);
 
-        rc = js_evt_connect(J->c,
-                            type, idx,
-                            __lua_joystick_js_event, evt);
-        if (!rc) {
-            evt->type = type;
-            evt->idx = idx;
-        }
+        event = js_link(J->c, type, idx, change);
 
-        list_insert_tail(&J->events, &evt->entry);
+        event_connect(event, __lua_joystick_js_event, evt);
 
         return 1;
     }
@@ -283,12 +274,8 @@ static int
 lua_joystick_close(struct lua_State *L)
 {
     struct lua_Joystick *J;
-    struct lua_JoystickEvent *evt, *next;
 
     J = lua_joystick_check(L, 1);
-
-    list_for_each_entry_safe(&J->events, evt, next, entry)
-        __lua_joystick_event_disconnect(evt);
 
     if (J->c) {
         js_close(J->c);

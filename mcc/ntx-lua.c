@@ -4,6 +4,7 @@
 
 #include <mcc/lua.h>
 #include <mcc/ntx.h>
+#include <mcc/rcvec.h>
 
 #include <crt/log.h>
 #include <crt/list.h>
@@ -90,7 +91,7 @@ lua_nettx_connect(struct lua_State *L)
         free(host);
     }
 
-    ntx = ntx_connect(&addr, vers);
+    ntx = ntx_open(&addr, vers);
 
     return ntx ? lua_nettx_new(L, ntx) : 0;
 }
@@ -169,6 +170,23 @@ lua_nettx_peername(struct lua_State *L)
 }
 
 static int
+lua_nettx_send(struct lua_State *L)
+{
+    struct lua_NetTX *T;
+    struct lua_RCVec *V;
+
+    T = lua_nettx_check(L, 1);
+    V = lua_rcvec_check(L, 2);
+
+    if (!T->c)
+        return 0;
+
+    ntx_send(T->c, V->val, V->len);
+
+    return 0;
+}
+
+static int
 lua_nettx_tostring(struct lua_State *L)
 {
     struct lua_NetTX *T;
@@ -183,13 +201,10 @@ lua_nettx_tostring(struct lua_State *L)
 
         name = lua_tostring(L, -1);
         if (name) {
-            lua_pop(L, 1);
             lua_nettx_peername(L);
-        }
-        peer = lua_tostring(L, -1);
-        if (peer) {
-            lua_pop(L, 1);
-            lua_pushfstring(L, "NetTX ('%s' -> '%s')", name, peer);
+            peer = lua_tostring(L, -1);
+            if (peer)
+                lua_pushfstring(L, "NetTX ('%s' -> '%s')", name, peer);
         }
     } else
         lua_pushstring(L, "NetTX (closed)");
@@ -205,6 +220,7 @@ static const struct luaL_reg lua_nettx_fn [] = {
 static const struct luaL_reg lua_nettx_class [] = {
     { "sockname", lua_nettx_sockname },
     { "peername", lua_nettx_peername },
+    { "send", lua_nettx_send },
     { "close", lua_nettx_close },
     { NULL, NULL }
 };

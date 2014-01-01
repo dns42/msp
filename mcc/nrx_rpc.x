@@ -1,12 +1,12 @@
 #ifdef RPC_XDR
-%#include "nrxrpc.h"
+%#include "nrx_rpc.h"
 #endif
 
 typedef uint16_t NRXv1_RCarg<>;
 
 program NRX_PROGRAM {
-    version NRXv1 {
-        void NRXv1_RC(NRXv1_RCarg) = 1;
+    version NRX_V1 {
+        void NRX1_RC(NRXv1_RCarg) = 1;
     } = 1;
 } = 1;
 

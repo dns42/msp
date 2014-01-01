@@ -60,6 +60,9 @@ int luaopen_js(struct lua_State *);
 int luaopen_tx(struct lua_State *);
 int luaopen_nrx(struct lua_State *);
 int luaopen_ntx(struct lua_State *);
+int luaopen_rcvec(struct lua_State *);
+int luaopen_msp(struct lua_State *);
+int luaopen_rmi(struct lua_State *);
 
 #define MCC_LUA_INIT(_entry)                                    \
     __attribute__((section("lua_init")))                        \

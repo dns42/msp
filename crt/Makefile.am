@@ -25,4 +25,7 @@ libcrt_la_SOURCES += log-stdio.c
 libcrt_la_SOURCES += log-stdio-internal.h
 libcrt_la_SOURCES += log-syslog.c
 libcrt_la_SOURCES += log-syslog-internal.h
+libcrt_la_SOURCES += event.c
+libcrt_la_SOURCES += event.h
+libcrt_la_SOURCES += event-internal.h
 

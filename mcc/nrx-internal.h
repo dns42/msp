@@ -4,6 +4,7 @@
 #include <mcc/nrx.h>
 
 #include <crt/list.h>
+#include <crt/event.h>
 
 #include <rpc/svc.h>
 #include <sys/select.h>
@@ -16,6 +17,8 @@ struct nrx {
     fd_set rfds;
 
     struct list entry;
+
+    struct event *rcupdate;
 
     int nchn;
     uint16_t chn[0];

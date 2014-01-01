@@ -16,15 +16,9 @@ int js_stat(struct js *js, struct stat *st);
 #define JS_VAL_MIN -32767
 #define JS_VAL_MAX  32767
 
-enum js_btn_value {
-    JS_BTN_RELEASED = 0,
-    JS_BTN_PRESSED = 1,
-};
-
 enum js_ctl_type {
     JS_AXIS = 'A',
     JS_BUTTON = 'B',
-    JS_N_CTL_TYPES,
 };
 
 int js_value(struct js *js, enum js_ctl_type type, int idx);
@@ -33,14 +27,8 @@ int js_axis(struct js *js, int idx);
 
 int js_button(struct js *js, int idx);
 
-typedef void (*js_evt_fn)(struct js *js,
-                          enum js_ctl_type type, int idx, int val, void *data);
-
-int js_evt_connect(struct js *js,
-                   enum js_ctl_type, int idx,
-                   js_evt_fn fn, void *data);
-
-void js_evt_disconnect(struct js *js, enum js_ctl_type type, int idx);
+struct event * js_link(struct js *js,
+                       enum js_ctl_type, int idx, const char *name);
 
 const char * js_ctl_type_name(enum js_ctl_type type);
 

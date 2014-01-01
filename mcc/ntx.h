@@ -3,7 +3,7 @@
 
 #include <netinet/in.h>
 
-struct ntx *ntx_connect(struct sockaddr_in *addr, unsigned long vers);
+struct ntx *ntx_open(struct sockaddr_in *addr, unsigned long vers);
 
 void ntx_close(struct ntx *ntx);
 

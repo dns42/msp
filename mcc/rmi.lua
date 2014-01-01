@@ -1,0 +1,2 @@
+
+RMI = Object:extend()

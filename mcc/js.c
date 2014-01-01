@@ -7,6 +7,7 @@
 #include <crt/defs.h>
 #include <crt/log.h>
 #include <crt/evtloop.h>
+#include <crt/event.h>
 
 #include <stdlib.h>
 #include <assert.h>
@@ -84,21 +85,51 @@ js_ctl_type_name(enum js_ctl_type type)
 }
 
 static void
-js_store(struct js *js, enum js_ctl_type type, int idx, int val)
+js_update_button(struct js *js, int idx, int val)
 {
-    struct js_ctlv *ctls;
-    struct js_sig *sig;
+    struct js_button *btn;
 
-    ctls = &js->ctls[type];
+    btn = &js->buttons[idx];
+    assert(idx < js->nbuttons);
 
-    assert(type < JS_N_CTL_TYPES);
-    assert(idx < ctls->cnt);
+    btn->val = val;
 
-    ctls->val[idx] = val;
+    if (val)
+        event_emit(btn->pressed, JS_BUTTON, idx, val);
+    else
+        event_emit(btn->released, JS_BUTTON, idx, val);
 
-    sig = &ctls->sig[idx];
-    if (sig->fn)
-        sig->pending = 1;
+    event_emit(btn->changed, JS_BUTTON, idx, val);
+}
+
+static void
+js_update_axis(struct js *js, int idx, int val)
+{
+    struct js_axis *axis;
+
+    axis = &js->axes[idx];
+    assert(idx < js->naxes);
+
+    axis->val = val;
+
+    event_emit(axis->changed, JS_AXIS, idx, val);
+}
+
+static void
+js_update(struct js *js, enum js_ctl_type type, int idx, int val)
+{
+    switch (type) {
+    case JS_BUTTON:
+        js_update_button(js, idx, val);
+        break;
+
+    case JS_AXIS:
+        js_update_axis(js, idx, val);
+        break;
+
+    default:
+        abort();
+    }
 }
 
 static void
@@ -107,10 +138,10 @@ js_reset(struct js *js)
     int idx;
 
     js_foreach_button(js, idx)
-        js_store(js, JS_BUTTON, idx, JS_VAL_NIL);
+        js_update_button(js, idx, JS_VAL_NIL);
 
     js_foreach_axis(js, idx)
-        js_store(js, JS_BUTTON, idx, JS_VAL_NIL);
+        js_update_axis(js, idx, JS_VAL_NIL);
 }
 
 static void
@@ -150,7 +181,7 @@ js_read_events(struct js *js)
             return;
         }
 
-        js_store(js, type, jse.number, jse.value);
+        js_update(js, type, jse.number, jse.value);
     } while (1);
 }
 
@@ -158,7 +189,29 @@ int
 js_value(struct js *js, enum js_ctl_type type, int idx)
 {
     int val;
-    struct js_ctlv *ctls;
+
+    val = JS_VAL_NIL;
+
+    switch (type) {
+    case JS_BUTTON:
+        val = js_button(js, idx);
+        break;
+
+    case JS_AXIS:
+        val = js_axis(js, idx);
+        break;
+
+    default:
+        errno = EINVAL;
+    }
+
+    return val;
+}
+
+int
+js_axis(struct js *js, int idx)
+{
+    int val;
 
     val = JS_VAL_NIL;
 
@@ -167,14 +220,12 @@ js_value(struct js *js, enum js_ctl_type type, int idx)
         goto out;
     }
 
-    ctls = &js->ctls[type];
-
-    if (idx >= ctls->cnt) {
-        errno = EINVAL;
+    if (idx >= js->naxes) {
+        errno = ERANGE;
         goto out;
     }
 
-    val = ctls->val[idx];
+    val = js->axes[idx].val;
 out:
     return val;
 }
@@ -182,38 +233,23 @@ out:
 int
 js_button(struct js *js, int idx)
 {
-    return js_value(js, JS_BUTTON, idx);
-}
+    int val;
 
-int
-js_axis(struct js *js, int idx)
-{
-    return js_value(js, JS_BUTTON, idx);
-}
+    val = JS_VAL_NIL;
 
-static void
-js_emit_type(struct js *js, enum js_ctl_type type)
-{
-    struct js_ctlv *ctls;
-    int i;
-
-    ctls = &js->ctls[type];
-
-    for (i = 0; i < ctls->cnt; i++) {
-        struct js_sig *sig = &ctls->sig[i];
-
-        if (sig->pending) {
-            sig->fn(js, type, i, ctls->val[i], sig->data);
-            sig->pending = 0;
-        }
+    if (!js_plugged(js)) {
+        errno = ENODEV;
+        goto out;
     }
-}
 
-static void
-js_emit_events(struct js *js)
-{
-    js_emit_type(js, JS_BUTTON);
-    js_emit_type(js, JS_AXIS);
+    if (idx >= js->nbuttons) {
+        errno = ERANGE;
+        goto out;
+    }
+
+    val = js->buttons[idx].val;
+out:
+    return val;
 }
 
 static void
@@ -221,28 +257,27 @@ js_pollevt(int revents, void *data)
 {
     struct js *js = data;
 
-    if (revents & POLLIN) {
+    if (revents & POLLIN)
         js_read_events(js);
-        js_emit_events(js);
-    }
 }
 
 struct js *
 js_open(const char *path)
 {
     struct js *js;
-    struct js_ctlv *ctls;
     __u8 cnt;
     int rc;
 
-    rc = -1;
-
     js = calloc(1, sizeof(*js));
-    if (!expected(js))
+
+    rc = expected(js) ? 0 : -1;
+    if (rc)
         goto out;
 
     js->fd = open(path, O_RDONLY | O_NONBLOCK);
-    if (js->fd < 0)
+
+    rc = js->fd < 0 ? -1 : 0;
+    if (rc)
         goto out;
 
     rc = ioctl(js->fd, JSIOCGAXES, &cnt);
@@ -251,14 +286,11 @@ js_open(const char *path)
         goto out;
     }
 
-    rc = -1;
-    ctls = &js->ctls[JS_AXIS];
+    js->naxes = cnt;
+    js->axes = calloc(cnt, sizeof(*js->axes));
 
-    ctls->cnt = cnt;
-    ctls->val = calloc(cnt, sizeof(*ctls->val));
-    ctls->sig = calloc(cnt, sizeof(*ctls->sig));
-    if (!expected(ctls->val) ||
-        !expected(ctls->sig))
+    rc = expected(js->axes) ? 0 : -1;
+    if (rc)
         goto out;
 
     rc = ioctl(js->fd, JSIOCGBUTTONS, &cnt);
@@ -267,20 +299,15 @@ js_open(const char *path)
         goto out;
     }
 
-    rc = -1;
-    ctls = &js->ctls[JS_BUTTON];
+    js->nbuttons = cnt;
+    js->buttons = calloc(cnt, sizeof(*js->buttons));
 
-    ctls->cnt = cnt;
-    ctls->val = calloc(cnt, sizeof(*ctls->val));
-    ctls->sig = calloc(cnt, sizeof(*ctls->sig));
-    if (!expected(ctls->val) ||
-        !expected(ctls->sig))
+    rc = expected(js->buttons) ? 0 : -1;
+    if (rc)
         goto out;
 
     js_reset(js);
     js_read_events(js);
-
-    rc = 0;
 out:
     if (rc) {
         int err = errno;
@@ -305,11 +332,8 @@ js_close(struct js *js)
     if (js->fd >= 0)
         close(js->fd);
 
-    free(js->ctls[JS_AXIS].val);
-    free(js->ctls[JS_AXIS].sig);
-
-    free(js->ctls[JS_BUTTON].val);
-    free(js->ctls[JS_BUTTON].sig);
+    free(js->axes);
+    free(js->buttons);
 
     free(js);
 }
@@ -346,61 +370,75 @@ js_unplug(struct js *js)
     }
 }
 
-int
-js_evt_connect(struct js *js,
-               enum js_ctl_type type, int idx,
-               js_evt_fn fn, void *data)
+static struct event *
+js_link_axis(struct js *js, int idx, const char *change)
 {
-    struct js_ctlv *ctls;
-    int rc;
-
-    rc = -1;
-
-    if (type != JS_BUTTON && type != JS_AXIS) {
-        errno = EINVAL;
-        goto out;
-    }
-
-    ctls = &js->ctls[type];
-
-    if (unexpected(idx < 0) || idx >= ctls->cnt) {
-        errno = EINVAL;
-        goto out;
-    }
-
-    if (ctls->sig[idx].fn) {
-        errno = EBUSY;
-        goto out;
-    }
-
-    ctls->sig[idx] = (struct js_sig) {
-        .fn = fn,
-        .data = data,
+    static const struct event_info tab[] = {
+        EVENT_INFO(struct js_button, pressed),
+        EVENT_INFO(struct js_button, released),
+        EVENT_INFO(struct js_button, changed),
+        EVENT_NULL,
     };
+    struct event *event;
 
-    rc = 0;
+    event = NULL;
+
+    if (unexpected(idx < 0) ||
+        unexpected(idx >= js->naxes)) {
+        errno = EINVAL;
+        goto out;
+    }
+
+    event = event_lookup(&js->axes[idx], change, tab);
 out:
-    return rc;
+    return event;
 }
 
-void
-js_evt_disconnect(struct js *js, enum js_ctl_type type, int idx)
+static struct event *
+js_link_button(struct js *js, int idx, const char *change)
 {
-    struct js_ctlv *ctls;
-
-    if (unexpected(type != JS_BUTTON &&
-                   type != JS_AXIS))
-        return;
-
-    ctls = &js->ctls[type];
-
-    if (unexpected(idx < 0 || idx >= ctls->cnt))
-        return;
-
-    ctls->sig[idx] = (struct js_sig) {
-        .fn = NULL,
-        .data = NULL,
+    static const struct event_info tab[] = {
+        EVENT_INFO(struct js_button, changed),
+        EVENT_NULL,
     };
+    struct event *event;
+
+    event = NULL;
+
+    if (unexpected(idx < 0) ||
+        unexpected(idx >= js->nbuttons)) {
+        errno = EINVAL;
+        goto out;
+    }
+
+    event = event_lookup(&js->buttons[idx], change, tab);
+out:
+    return event;
+}
+
+struct event *
+js_link(struct js *js,
+        enum js_ctl_type type, int idx,
+        const char *change)
+{
+    struct event *event;
+
+    event = NULL;
+
+    switch (type) {
+    case JS_AXIS:
+        event = js_link_axis(js, idx, change);
+        break;
+
+    case JS_BUTTON:
+        event = js_link_button(js, idx, change);
+        break;
+
+    default:
+        errno = EINVAL;
+    }
+
+    return event;
 }
 
 /*

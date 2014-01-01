@@ -23,6 +23,8 @@ static int
 luaopen_mcc(lua_State *L)
 {
     luaL_openlib(L, "mcc", mcc_f, 0);
+    lua_pop(L, 1);
+
     return 0;
 }
 

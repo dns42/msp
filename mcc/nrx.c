@@ -3,11 +3,13 @@
 #endif
 
 #include <mcc/nrx-internal.h>
-#include <mcc/nrxrpc.h>
+#include <mcc/nrx_rpc.h>
 
 #include <crt/log.h>
+#include <crt/event.h>
 
 #include <stdlib.h>
+#include <assert.h>
 #include <unistd.h>
 
 static struct list nrx_list = LIST(&nrx_list);
@@ -41,8 +43,8 @@ nrx_error(struct nrx *nrx)
 }
 
 static void *
-nrx_1_rc_svc(struct nrx *nrx,
-             NRXv1_RCarg *arg, struct svc_req *rq)
+nrx_1_rc(struct nrx *nrx,
+         NRXv1_RCarg *arg, struct svc_req *rq)
 {
     uint16_t *val;
     int len, i;
@@ -60,16 +62,15 @@ nrx_1_rc_svc(struct nrx *nrx,
 }
 
 static void
-nrx_prog_1(struct svc_req *rq, SVCXPRT *xprt)
+nrx_1_prog(struct svc_req *rq, SVCXPRT *xprt)
 {
     union {
         NRXv1_RCarg nrxv1_rc_1_arg;
     } _arg;
     void *arg, *res;
     xdrproc_t _xdr_arg, _xdr_res;
-    typedef char *(*nrx_svc_t)(struct nrx *,
-                               void *, struct svc_req *);
-    nrx_svc_t _nrx_svc;
+    typedef char *(*nrx_1_svc)(struct nrx *, void *, struct svc_req *);
+    nrx_1_svc _nrx_svc;
     struct nrx *nrx;
     bool_t ok;
 
@@ -88,10 +89,10 @@ nrx_prog_1(struct svc_req *rq, SVCXPRT *xprt)
         svc_sendreply(xprt, (xdrproc_t) xdr_void, NULL);
         return;
 
-    case NRXv1_RC:
+    case NRX1_RC:
         _xdr_arg = (xdrproc_t) xdr_NRXv1_RCarg;
         _xdr_res = (xdrproc_t) NULL;
-        _nrx_svc = (nrx_svc_t) nrx_1_rc_svc;
+        _nrx_svc = (nrx_1_svc) nrx_1_rc;
         break;
 
     default:
@@ -120,7 +121,7 @@ nrx_prog_1(struct svc_req *rq, SVCXPRT *xprt)
             svcerr_systemerr(xprt);
     }
 
-    ok = svc_freeargs(xprt, _xdr_arg, (caddr_t) &arg);
+    ok = svc_freeargs(xprt, _xdr_arg, arg);
 
     if (!expected(ok))
         nrx_error(nrx);
@@ -130,7 +131,6 @@ static void
 nrx_recv(struct nrx *nrx)
 {
     FD_SET(nrx->sock, &nrx->rfds);
-
     svc_getreqset(&nrx->rfds);
 }
 
@@ -149,7 +149,7 @@ nrx_bind(int nchn, struct sockaddr_in *addr, unsigned long vers)
         goto out;
     }
 
-    vers = vers ? : NRXv1;
+    vers = vers ? : NRX_V1;
 
     nrx = calloc(1, offsetof(struct nrx, chn[nchn]));
 
@@ -178,7 +178,7 @@ nrx_bind(int nchn, struct sockaddr_in *addr, unsigned long vers)
 
     ok = svc_register(nrx->xprt,
                       NRX_PROGRAM, vers,
-                      nrx_prog_1, 0);
+                      nrx_1_prog, 0);
 
     rc = expected(ok) ? 0 : -1;
     if (rc) {
@@ -220,11 +220,6 @@ nrx_sockname(struct nrx *nrx, struct sockaddr_in *addr)
     return getsockname(nrx->sock, (struct sockaddr *) addr, &alen);
 }
 
-static void
-nrx_emit(struct nrx *nrx)
-{
-}
-
 int
 nrx_plugged(struct nrx *nrx)
 {
@@ -237,9 +232,23 @@ nrx_pollevt(int revents, void *data)
     struct nrx *nrx = data;
 
     if (revents & POLLIN) {
+
         nrx_recv(nrx);
-        nrx_emit(nrx);
+
+        if (nrx->rcupdate)
+            event_emit(nrx->rcupdate);
     }
+}
+
+struct event *
+nrx_link(struct nrx *nrx, const char *event)
+{
+    static const struct event_info tab[] = {
+        EVENT_INFO(struct nrx, rcupdate),
+        EVENT_NULL,
+    };
+
+    return event_lookup(nrx, event, tab);
 }
 
 int

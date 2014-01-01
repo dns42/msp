@@ -105,11 +105,15 @@ lua_libinit(struct lua_State *L)
 
     luaopen_object(L);
 
+    assert(lua_gettop(L) == 0);
+
     for (p = &__start_lua_init;
          p < &__stop_lua_init;
          p++) {
 
         p->func(L) ? 0 : -1;
+
+        assert(lua_gettop(L) == 0);
     }
 
     return 0;

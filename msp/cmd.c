@@ -399,3 +399,13 @@ msp_set_box(struct msp *msp, uint16_t *items, int cnt)
 out:
     return rc;
 }
+
+/*
+ * Local variables:
+ * mode: C
+ * c-file-style: "Linux"
+ * c-basic-offset: 4
+ * tab-width: 4
+ * indent-tabs-mode: nil
+ * End:
+ */
