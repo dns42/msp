@@ -11,6 +11,8 @@ struct lua_State * lua_create(void);
 
 void lua_destroy(struct lua_State *);
 
+#include <crt/log.h>
+
 #define TOP() do {                                                  \
         int top = lua_gettop(L);                                    \
         int typ = lua_type(L, -1);                                  \
@@ -44,32 +46,29 @@ void lua_destroy(struct lua_State *);
 #define MCC_LUA_LEN(_mod)                                   \
     ((size_t)(MCC_LUA_END(_mod) - MCC_LUA_START(_mod)))
 
-struct mcc_init_luaopen {
-    lua_CFunction func;
-    const char *name;
-};
-
 void
 lua_object_classinit(struct lua_State *,
                      const char *tname,
                      const struct luaL_reg *reg_class,
                      const struct luaL_reg *reg_meta);
+
 int luaopen_object(struct lua_State *);
 
-int luaopen_js(struct lua_State *);
-int luaopen_tx(struct lua_State *);
-int luaopen_nrx(struct lua_State *);
-int luaopen_ntx(struct lua_State *);
+int luaopen_joystick(struct lua_State *);
+
+int luaopen_netrx(struct lua_State *);
+
+int luaopen_nettx(struct lua_State *);
+
 int luaopen_rcvec(struct lua_State *);
+
 int luaopen_msp(struct lua_State *);
+
 int luaopen_rmi(struct lua_State *);
 
-#define MCC_LUA_INIT(_entry)                                    \
-    __attribute__((section("lua_init")))                        \
-    struct mcc_init_luaopen __mcc_init_ ## _entry = {           \
-        .func = _entry,                                         \
-        .name = #_entry                                         \
-    }
+int luaopen_mcc(struct lua_State *);
+
+int luaopen_event(struct lua_State *);
 
 #endif
 

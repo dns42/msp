@@ -19,7 +19,7 @@ static const struct luaL_reg mcc_f [] = {
     { NULL, NULL }
 };
 
-static int
+int
 luaopen_mcc(lua_State *L)
 {
     luaL_openlib(L, "mcc", mcc_f, 0);
@@ -27,8 +27,6 @@ luaopen_mcc(lua_State *L)
 
     return 0;
 }
-
-MCC_LUA_INIT(luaopen_mcc);
 
 /*
  * Local variables:

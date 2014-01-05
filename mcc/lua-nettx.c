@@ -3,8 +3,8 @@
 #endif
 
 #include <mcc/lua.h>
+#include <mcc/lua-rcvec.h>
 #include <mcc/ntx.h>
-#include <mcc/rcvec.h>
 
 #include <crt/log.h>
 #include <crt/list.h>
@@ -232,13 +232,13 @@ static const struct luaL_reg lua_nettx_meta [] = {
 };
 
 int
-luaopen_ntx(struct lua_State *L)
+luaopen_nettx(struct lua_State *L)
 {
     int rc;
 
     rc = luaL_loadbuffer(L,
-                         MCC_LUA_START(ntx), MCC_LUA_LEN(ntx),
-                         "ntx.lua");
+                         MCC_LUA_START(nettx), MCC_LUA_LEN(nettx),
+                         "nettx.lua");
     assert(!rc);
     lua_call(L, 0, 0);
 
@@ -251,8 +251,6 @@ luaopen_ntx(struct lua_State *L)
 
     return 0;
 }
-
-MCC_LUA_INIT(luaopen_ntx);
 
 /*
  * Local variables:

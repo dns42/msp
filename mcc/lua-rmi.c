@@ -22,8 +22,6 @@ luaopen_rmi(struct lua_State *L)
     return 0;
 }
 
-MCC_LUA_INIT(luaopen_rmi);
-
 /*
  * Local variables:
  * mode: C

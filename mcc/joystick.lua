@@ -7,5 +7,3 @@ Joystick = Object:extend {
    AXIS = 65,
    BUTTON = 66,
 }
-
-JoystickEvent = Object:extend {}

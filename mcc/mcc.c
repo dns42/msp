@@ -5,6 +5,7 @@
 #include <mcc/mcc-internal.h>
 
 #include <crt/log.h>
+#include <crt/event.h>
 
 #include <stdlib.h>
 
@@ -29,10 +30,24 @@ out:
     return mcc;
 }
 
+static const struct event_info mcc_events_tab[] = {
+    EVENT_INFO(struct mcc_events, start),
+    EVENT_INFO(struct mcc_events, stop),
+    EVENT_INFO(struct mcc_events, destroy),
+    EVENT_INFO_NULL,
+};
+
 void
 mcc_destroy(struct mcc *mcc)
 {
+    event_unlink_tab(&mcc->events, mcc_events_tab);
     free(mcc);
+}
+
+struct signal *
+mcc_link(struct mcc *mcc, const char *event)
+{
+    return event_lookup(&mcc->events, event, mcc_events_tab);
 }
 
 void

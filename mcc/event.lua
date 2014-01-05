@@ -1,2 +1,2 @@
 
-Event = Object:extend ()
+Signal = Object:extend ()

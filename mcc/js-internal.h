@@ -25,6 +25,8 @@ struct js {
 
     int nbuttons;
     struct js_button *buttons;
+
+    struct event *destroy;
 };
 
 #define js_foreach_ctl(_js, _type, _idx)        \

@@ -17,7 +17,7 @@ int nrx_sockname(struct nrx *nrx, struct sockaddr_in *addr);
 
 int nrx_plugged(struct nrx *nrx);
 
-struct event * nrx_link(struct nrx *nrx, const char *type);
+struct signal * nrx_link(struct nrx *nrx, const char *type);
 
 int nrx_plug(struct nrx *nrx, struct evtloop *loop);
 

@@ -201,13 +201,13 @@ static const struct luaL_reg lua_netrx_meta [] = {
 };
 
 int
-luaopen_nrx(struct lua_State *L)
+luaopen_netrx(struct lua_State *L)
 {
     int rc;
 
     rc = luaL_loadbuffer(L,
-                         MCC_LUA_START(nrx), MCC_LUA_LEN(nrx),
-                         "nrx.lua");
+                         MCC_LUA_START(netrx), MCC_LUA_LEN(netrx),
+                         "netrx.lua");
     assert(!rc);
     lua_call(L, 0, 0);
 
@@ -220,8 +220,6 @@ luaopen_nrx(struct lua_State *L)
 
     return 0;
 }
-
-MCC_LUA_INIT(luaopen_nrx);
 
 /*
  * Local variables:

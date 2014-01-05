@@ -262,8 +262,6 @@ luaopen_msp(struct lua_State *L)
     return 0;
 }
 
-MCC_LUA_INIT(luaopen_msp);
-
 /*
  * Local variables:
  * mode: C

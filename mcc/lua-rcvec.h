@@ -1,5 +1,5 @@
-#ifndef MCC_RCVEC_H
-#define MCC_RCVEC_H
+#ifndef MCC_LUA_RCVEC_H
+#define MCC_LUA_RCVEC_H
 
 #include <lua.h>
 #include <stdint.h>

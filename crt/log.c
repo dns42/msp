@@ -123,6 +123,10 @@ log_vprintf(const struct log_hdr *hdr, const char *fmt, va_list ap)
                           "%s:", hdr->func);
 
         if (n < sizeof(buf))
+            n += snprintf(buf + n, sizeof(buf) - n,
+                          "%d:", hdr->line);
+
+        if (n < sizeof(buf))
             n += vsnprintf(buf + n, sizeof(buf) - n, fmt, ap);
 
         if (n >= sizeof(buf)) {

@@ -27,10 +27,12 @@ int js_axis(struct js *js, int idx);
 
 int js_button(struct js *js, int idx);
 
-struct event * js_link(struct js *js,
-                       enum js_ctl_type, int idx, const char *name);
+struct signal * js_ctl_link(struct js *js,
+                            enum js_ctl_type, int idx, const char *change);
 
 const char * js_ctl_type_name(enum js_ctl_type type);
+
+struct signal * js_link(struct js *js, const char *change);
 
 int js_plug(struct js *js, struct evtloop *loop);
 

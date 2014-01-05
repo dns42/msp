@@ -3,32 +3,107 @@
 #endif
 
 #include <crt/event-internal.h>
+#include <crt/log.h>
 
 #include <stdlib.h>
 #include <string.h>
 
-struct event *
-event_splice(struct event **link)
+static struct event *
+event_get(struct event **link)
 {
     struct event *evt;
 
-    evt = malloc(sizeof(*evt));
-    if (!evt)
-        goto out;
+    evt = *link;
 
-    evt->link = *link ? (*link)->link : link;
-out:
+    if (!evt) {
+        evt = malloc(sizeof(*evt));
+
+        if (expected(evt)) {
+            list_init(&evt->signals);
+            evt->link = link;
+
+            *link = evt;
+        }
+    }
+
     return evt;
 }
 
-struct event *
+static void
+event_put(struct event *evt)
+{
+    if (list_is_empty(&evt->signals)) {
+
+        if (evt->link)
+            *evt->link = NULL;
+
+        free(evt);
+    }
+}
+
+void
+event_unlink(struct event *evt)
+{
+    if (evt)
+        evt->link = NULL;
+}
+
+void
+event_unlink_tab(void *obj, const struct event_info *tab)
+{
+    const struct event_info *info;
+
+    event_tab_foreach(info, tab) {
+        struct event **link = obj + info->offset;
+
+        event_unlink(*link);
+    }
+}
+
+struct signal *
+event_splice(struct event **link)
+{
+    struct signal *sig;
+    struct event *evt;
+    int rc;
+
+    sig = calloc(1, sizeof(*sig));
+
+    rc = sig ? 0 : -1;
+    if (rc)
+        goto out;
+
+    evt = event_get(link);
+
+    rc = evt ? 0 : -1;
+    if (rc)
+        goto out;
+
+    list_init(&sig->entry);
+    sig->event = evt;
+out:
+    if (rc) {
+        if (sig) {
+            signal_destroy(sig);
+            sig = NULL;
+        }
+
+        if (evt)
+            event_put(evt);
+    }
+
+    return sig;
+}
+
+struct signal *
 event_lookup(void *obj, const char *name,
              const struct event_info *tab)
 {
     const struct event_info *info;
-    struct event *evt, **link;
+    struct signal *sig;
+    struct event **link;
 
-    evt = NULL;
+    sig = NULL;
 
     for (info = tab;
          info = info->name ? info : NULL, info != NULL;
@@ -42,65 +117,55 @@ event_lookup(void *obj, const char *name,
         goto out;
     }
 
-    link = obj - info->offset;
+    link = obj + info->offset;
 
-    evt = event_splice(link);
+    sig = event_splice(link);
 out:
-    return evt;
+    return sig;
 }
 
 void
-event_destroy(struct event *evt)
+signal_destroy(struct signal *sig)
 {
-    if (list_is_empty(&evt->list))
-
-        *evt->link = NULL;
-
-    else {
-        struct event *head = *evt->link;
-
-        if (evt == head) {
-            *evt->link = event_next(evt);
-
-            list_remove(&evt->list);
-        }
-    }
-
-    evt->link = NULL;
-
-    free(evt);
+    signal_disconnect(sig);
+    free(sig);
 }
 
 void
-event_connect(struct event *evt, event_fn fn, void *data)
+signal_connect(struct signal *sig, signal_fn fn, void *data)
 {
-    struct event *head;
+    signal_disconnect(sig);
 
-    head = *evt->link;
+    sig->fn = fn;
+    sig->data = data;
 
-    evt->fn = fn;
-    evt->data = data;
+    list_insert_tail(&sig->event->signals, &sig->entry);
+}
 
-    if (head)
-        list_insert_tail(&head->list, &evt->list);
-    else {
-        list_init(&evt->list);
+void
+signal_disconnect(struct signal *sig)
+{
+    if (!list_is_empty(&sig->entry)) {
 
-        *evt->link = evt;
+        list_remove_init(&sig->entry);
+
+        event_put(sig->event);
     }
 }
 
 void
 event_emitv(struct event *evt, va_list ap)
 {
-    while (evt) {
-        struct event *next;
+    struct signal *sig, *next;
 
-        next = __list_next_entry(evt, list);
+    if (evt) {
+        list_for_each_entry_safe(&evt->signals, sig, next, entry) {
+            va_list cp;
 
-        evt->fn(evt->data, ap);
+            va_copy(cp, ap);
 
-        evt = next;
+            sig->fn(sig->data, cp);
+        }
     }
 }
 
@@ -109,9 +174,11 @@ event_emit(struct event *evt, ...)
 {
     va_list ap;
 
-    va_start(ap, evt);
-    event_emitv(evt, ap);
-    va_end(ap);
+    if (evt) {
+        va_start(ap, evt);
+        event_emitv(evt, ap);
+        va_end(ap);
+    }
 }
 
 /*

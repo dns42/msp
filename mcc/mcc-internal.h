@@ -5,6 +5,12 @@
 
 struct mcc {
     int stop;
+
+    struct mcc_events {
+        struct event *start;
+        struct event *stop;
+        struct event *destroy;
+    } events;
 };
 
 #endif

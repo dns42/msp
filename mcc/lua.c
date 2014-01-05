@@ -14,6 +14,11 @@ static void *
 __lua_realloc(void *priv,
               void *p, size_t prev, size_t next)
 {
+    if (!next) {
+        free(p);
+        return NULL;
+    }
+
     return realloc(p, next);
 }
 
@@ -96,24 +101,26 @@ static const struct luaL_reg base_f [] = {
 static int
 lua_libinit(struct lua_State *L)
 {
-    extern struct mcc_init_luaopen __start_lua_init, __stop_lua_init;
-    struct mcc_init_luaopen *p;
+    const lua_CFunction *fnp, init[] = {
+        luaopen_object,
+        luaopen_event,
+        luaopen_joystick,
+        luaopen_netrx,
+        luaopen_nettx,
+        luaopen_rcvec,
+        luaopen_msp,
+        luaopen_rmi,
+        NULL,
+    };
+    lua_CFunction fn;
 
     lua_getglobal(L, "_G");
     luaL_register(L, NULL, base_f);
     lua_pop(L, 1);
 
-    luaopen_object(L);
-
-    assert(lua_gettop(L) == 0);
-
-    for (p = &__start_lua_init;
-         p < &__stop_lua_init;
-         p++) {
-
-        p->func(L) ? 0 : -1;
-
-        assert(lua_gettop(L) == 0);
+    for (fnp = init; fn = *fnp, fn != NULL; fnp++) {
+        fn(L);
+        lua_settop(L, 0);
     }
 
     return 0;

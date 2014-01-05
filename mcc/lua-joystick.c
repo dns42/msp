@@ -3,6 +3,7 @@
 #endif
 
 #include <mcc/lua.h>
+#include <mcc/lua-event.h>
 #include <mcc/js.h>
 
 #include <crt/log.h>
@@ -18,7 +19,7 @@ struct lua_Joystick {
 };
 
 struct lua_JoystickEvent {
-    struct event *c;
+    struct signal *c;
 
     struct lua_State *L;
     struct lua_Joystick *J;
@@ -78,7 +79,7 @@ lua_joystick_value(struct lua_State *L, enum js_ctl_type type)
         val = js_value(J->c, type, (int) idx);
 
     if (val != JS_VAL_NIL)
-        lua_pushnumber(L, val);
+        lua_pushinteger(L, val);
     else
         lua_pushnil(L);
 
@@ -97,126 +98,52 @@ lua_joystick_button(struct lua_State *L)
     return lua_joystick_value(L, JS_BUTTON);
 }
 
-static struct lua_JoystickEvent *
-lua_joystick_event_check(struct lua_State *L, int n)
-{
-    void *ud;
-
-    ud = luaL_checkudata(L, n, "JoystickEvent");
-    luaL_argcheck(L, ud != NULL, 1, "`JoystickEvent' expected");
-
-    return ud;
-}
-
 static void
-__lua_joystick_event_disconnect(struct lua_JoystickEvent *evt)
+lua_joystick_ctl_marshal(struct lua_State *L, va_list ap)
 {
-    struct lua_State *L;
-
-    L = evt->L;
-
-    if (evt->c) {
-        event_destroy(evt->c);
-        evt->c = NULL;
-    }
-
-    if (evt->fnr >= 0) {
-        luaL_unref(L, LUA_REGISTRYINDEX, evt->fnr);
-        evt->fnr = -1;
-    }
-
-    if (evt->evr >= 0) {
-        luaL_unref(L, LUA_REGISTRYINDEX, evt->evr);
-        evt->evr = -1;
-    }
+    lua_pushinteger(L, va_arg(ap, enum js_ctl_type));
+    lua_pushinteger(L, va_arg(ap, int));
+    lua_pushinteger(L, va_arg(ap, int));
 }
 
 static int
-lua_joystick_event_disconnect(struct lua_State *L)
-{
-    struct lua_JoystickEvent *evt;
-
-    evt = lua_joystick_event_check(L, 1);
-
-    __lua_joystick_event_disconnect(evt);
-
-    return 0;
-}
-
-static int
-lua_joystick_event_tostring(struct lua_State *L)
-{
-    struct lua_JoystickEvent *evt;
-
-    evt = lua_joystick_event_check(L, 1);
-
-    lua_pushfstring(L, "JoystickEvent: %s, %d",
-                    evt->type == JS_AXIS
-                    ? "AXIS"
-                    : evt->type == JS_BUTTON
-                    ? "BUTTON"
-                    : "?",
-                    evt->idx);
-
-    return 0;
-}
-
-static void
-__lua_joystick_js_event(void *data, va_list ap)
-{
-    struct lua_JoystickEvent *evt;
-    struct lua_State *L;
-
-    evt = data;
-    L = evt->L;
-
-    lua_rawgeti(L, LUA_REGISTRYINDEX, evt->fnr);
-    lua_pushnumber(L, va_arg(ap, enum js_ctl_type));
-    lua_pushnumber(L, va_arg(ap, int));
-    lua_pushnumber(L, va_arg(ap, int));
-    lua_call(L, 4, 0);
-}
-
-static int
-lua_joystick_connect(struct lua_State *L)
+lua_joystick_link(struct lua_State *L)
 {
     struct lua_Joystick *J;
-    const char *change;
-    enum js_ctl_type type;
-    int idx;
+    struct signal *sig;
+    int jsref;
+
+    sig = NULL;
 
     J = lua_joystick_check(L, 1);
-    type = luaL_checknumber(L, 2);
-    idx = luaL_checknumber(L, 3);
-    change = luaL_checkstring(L, 4);
-    luaL_checktype(L, 5, LUA_TFUNCTION);
 
-    if (!expected(J->c)) {
-        struct lua_JoystickEvent *evt;
-        struct event *event;
+    if (J->c) {
+        const char *change;
 
-        evt = lua_newuserdata(L, sizeof(*evt));
-        evt->L = L;
-        evt->J = J;
-        evt->type = type;
-        evt->idx = idx;
-        evt->fnr = -1;
-        evt->evr = -1;
+        if (lua_isnumber(L, 2)) {
+            enum js_ctl_type type;
+            int idx;
 
-        luaL_getmetatable(L, "JoystickEvent");
-        lua_setmetatable(L, -2);
+            type = luaL_checknumber(L, 2);
+            idx = luaL_checknumber(L, 3);
+            change = luaL_checkstring(L, 4);
 
-        evt->evr = luaL_ref(L, LUA_REGISTRYINDEX);
-        evt->fnr = luaL_ref(L, LUA_REGISTRYINDEX);
+            sig = js_ctl_link(J->c, type, idx, change);
+        } else {
+            change = lua_tostring(L, 2);
 
-        event = js_link(J->c, type, idx, change);
-
-        event_connect(event, __lua_joystick_js_event, evt);
-
-        return 1;
+            sig = js_link(J->c, change);
+        }
     }
 
-    return 0;
+    if (sig) {
+        lua_settop(L, 1);
+        jsref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+
+    return sig
+        ? lua_signal_new(L, sig, lua_joystick_ctl_marshal, jsref)
+        : 0;
 }
 
 static int
@@ -306,7 +233,7 @@ static const struct luaL_reg lua_joystick_class[] = {
     { "name", lua_joystick_name },
     { "axis", lua_joystick_axis },
     { "button", lua_joystick_button },
-    { "connect", lua_joystick_connect },
+    { "link", lua_joystick_link },
     { "close", lua_joystick_close },
     { "plugged", lua_joystick_plugged },
 };
@@ -317,23 +244,14 @@ static const struct luaL_reg lua_joystick_meta [] = {
     { NULL, NULL }
 };
 
-static const struct luaL_reg lua_joystick_event_class [] = {
-    { "disconnect", lua_joystick_event_disconnect },
-};
-
-static const struct luaL_reg lua_joystick_event_meta [] = {
-    { "__tostring", lua_joystick_event_tostring },
-    { NULL, NULL }
-};
-
 int
-luaopen_js(struct lua_State *L)
+luaopen_joystick(struct lua_State *L)
 {
     int rc;
 
     rc = luaL_loadbuffer(L,
-                         MCC_LUA_START(js), MCC_LUA_LEN(js),
-                         "js.lua");
+                         MCC_LUA_START(joystick), MCC_LUA_LEN(joystick),
+                         "joystick.lua");
     assert(!rc);
     lua_call(L, 0, 0);
 
@@ -344,14 +262,8 @@ luaopen_js(struct lua_State *L)
                          lua_joystick_class,
                          lua_joystick_meta);
 
-    lua_object_classinit(L, "JoystickEvent",
-                         lua_joystick_event_class,
-                         lua_joystick_meta);
-
     return 0;
 }
-
-MCC_LUA_INIT(luaopen_js);
 
 /*
  * Local variables:

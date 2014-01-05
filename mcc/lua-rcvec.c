@@ -2,8 +2,8 @@
 #include "config.h"
 #endif
 
-#include <mcc/rcvec.h>
 #include <mcc/lua.h>
+#include <mcc/lua-rcvec.h>
 
 #include <crt/log.h>
 #include <crt/list.h>
@@ -22,6 +22,7 @@ lua_rcvec_check(struct lua_State *L, int n)
 
     return V;
 }
+
 static int
 lua_rcvec_checkindex(struct lua_State *L,
                      struct lua_RCVec *V, int idx)
@@ -215,9 +216,6 @@ luaopen_rcvec(struct lua_State *L)
 
     return 0;
 }
-
-MCC_LUA_INIT(luaopen_rcvec);
-
 
 /*
  * Local variables:

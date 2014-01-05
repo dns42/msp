@@ -240,12 +240,12 @@ nrx_pollevt(int revents, void *data)
     }
 }
 
-struct event *
+struct signal *
 nrx_link(struct nrx *nrx, const char *event)
 {
     static const struct event_info tab[] = {
         EVENT_INFO(struct nrx, rcupdate),
-        EVENT_NULL,
+        EVENT_INFO_NULL,
     };
 
     return event_lookup(nrx, event, tab);

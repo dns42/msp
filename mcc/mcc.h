@@ -2,10 +2,13 @@
 #define MCC_MCC_H
 
 #include <crt/evtloop.h>
+#include <crt/event.h>
 
 struct mcc * mcc_create(void);
 
 void mcc_destroy(struct mcc *);
+
+struct signal *mcc_link(struct mcc *mcc, const char *event);
 
 int mcc_run(struct mcc *, struct evtloop *);
 

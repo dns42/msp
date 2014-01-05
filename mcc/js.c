@@ -17,6 +17,23 @@
 #include <sys/ioctl.h>
 #include <linux/joystick.h>
 
+static const struct event_info js_axis_event_tab[] = {
+    EVENT_INFO(struct js_axis, changed),
+    EVENT_INFO_NULL,
+};
+
+static const struct event_info js_button_event_tab[] = {
+    EVENT_INFO(struct js_button, pressed),
+    EVENT_INFO(struct js_button, released),
+    EVENT_INFO(struct js_button, changed),
+    EVENT_INFO_NULL,
+};
+
+static const struct event_info js_event_tab[] = {
+    EVENT_INFO(struct js, destroy),
+    EVENT_INFO_NULL,
+};
+
 int
 js_stat(struct js *js, struct stat *st)
 {
@@ -26,7 +43,6 @@ js_stat(struct js *js, struct stat *st)
 const char *
 js_name(struct js *js)
 {
-
     if (!js->name) {
         size_t len;
         char *name;
@@ -289,6 +305,8 @@ js_open(const char *path)
     js->naxes = cnt;
     js->axes = calloc(cnt, sizeof(*js->axes));
 
+    debug("axes %p", js->axes);
+
     rc = expected(js->axes) ? 0 : -1;
     if (rc)
         goto out;
@@ -301,6 +319,8 @@ js_open(const char *path)
 
     js->nbuttons = cnt;
     js->buttons = calloc(cnt, sizeof(*js->buttons));
+
+    debug("buttons %p", js->buttons);
 
     rc = expected(js->buttons) ? 0 : -1;
     if (rc)
@@ -324,7 +344,18 @@ out:
 void
 js_close(struct js *js)
 {
+    int idx;
+
     js_unplug(js);
+
+    js_foreach_button(js, idx) {
+        event_unlink(js->buttons[idx].pressed);
+        event_unlink(js->buttons[idx].released);
+        event_unlink(js->buttons[idx].changed);
+    }
+
+    js_foreach_axis(js, idx)
+        event_unlink(js->axes[idx].changed);
 
     if (js->name)
         free(js->name);
@@ -370,18 +401,12 @@ js_unplug(struct js *js)
     }
 }
 
-static struct event *
+static struct signal *
 js_link_axis(struct js *js, int idx, const char *change)
 {
-    static const struct event_info tab[] = {
-        EVENT_INFO(struct js_button, pressed),
-        EVENT_INFO(struct js_button, released),
-        EVENT_INFO(struct js_button, changed),
-        EVENT_NULL,
-    };
-    struct event *event;
+    struct signal *sig;
 
-    event = NULL;
+    sig = NULL;
 
     if (unexpected(idx < 0) ||
         unexpected(idx >= js->naxes)) {
@@ -389,21 +414,18 @@ js_link_axis(struct js *js, int idx, const char *change)
         goto out;
     }
 
-    event = event_lookup(&js->axes[idx], change, tab);
+    sig = event_lookup(&js->axes[idx], change,
+                       js_axis_event_tab);
 out:
-    return event;
+    return sig;
 }
 
-static struct event *
+static struct signal *
 js_link_button(struct js *js, int idx, const char *change)
 {
-    static const struct event_info tab[] = {
-        EVENT_INFO(struct js_button, changed),
-        EVENT_NULL,
-    };
-    struct event *event;
+    struct signal *sig;
 
-    event = NULL;
+    sig = NULL;
 
     if (unexpected(idx < 0) ||
         unexpected(idx >= js->nbuttons)) {
@@ -411,34 +433,41 @@ js_link_button(struct js *js, int idx, const char *change)
         goto out;
     }
 
-    event = event_lookup(&js->buttons[idx], change, tab);
+    sig = event_lookup(&js->buttons[idx], change,
+                       js_button_event_tab);
 out:
-    return event;
+    return sig;
 }
 
-struct event *
-js_link(struct js *js,
-        enum js_ctl_type type, int idx,
-        const char *change)
+struct signal *
+js_ctl_link(struct js *js,
+            enum js_ctl_type type, int idx,
+            const char *change)
 {
-    struct event *event;
+    struct signal *sig;
 
-    event = NULL;
+    sig = NULL;
 
     switch (type) {
     case JS_AXIS:
-        event = js_link_axis(js, idx, change);
+        sig = js_link_axis(js, idx, change);
         break;
 
     case JS_BUTTON:
-        event = js_link_button(js, idx, change);
+        sig = js_link_button(js, idx, change);
         break;
 
     default:
         errno = EINVAL;
     }
 
-    return event;
+    return sig;
+}
+
+struct signal *
+js_link(struct js *js, const char *change)
+{
+    return event_lookup(js, change, js_event_tab);
 }
 
 /*
