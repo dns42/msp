@@ -28,4 +28,7 @@ libcrt_la_SOURCES += log-syslog-internal.h
 libcrt_la_SOURCES += event.c
 libcrt_la_SOURCES += event.h
 libcrt_la_SOURCES += event-internal.h
+libcrt_la_SOURCES += dnssd.c
+libcrt_la_SOURCES += dnssd.h
 
+libcrt_la_LIBADD  = -ldns_sd

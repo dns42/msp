@@ -254,6 +254,10 @@ struct msp_analog {
  */
 #define MSP_MISC                114
 
+struct msp_misc {
+    uint16_t intPowerTrigger1;
+};
+
 /*
  * get
  *   motor pins

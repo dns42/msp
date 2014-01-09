@@ -5,18 +5,27 @@
 #include <msp/meta.h>
 #include <stdlib.h>
 
-const struct msp_msg_field msp_pid_field[] = {
+const struct msp_struct_field msp_pid_fields[] = {
     {
         .name = "P",
-        .type = FIELD_T_UINT8,
+        .data = {
+            .type = MSP_DATA_T_UINT8,
+        },
     },
     {
         .name = "I",
-        .type = FIELD_T_UINT8,
+        .data = {
+            .type = MSP_DATA_T_UINT8,
+        },
     },
     {
         .name = "D",
-        .type = FIELD_T_UINT8,
+        .data = {
+            .type = MSP_DATA_T_UINT8,
+        },
+    },
+    {
+        .name = NULL,
     },
 };
 
@@ -25,127 +34,135 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "ident",
         .cmd = MSP_IDENT,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "fwversion",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    }
                 },
                 {
                     .name = "multitype",
-                    .type = FIELD_T_UINT8,
-                    .vals = (struct msp_field_value []) {
-                        {
-                            .name = "tri",
-                            .type = VALUE_T_ENUM,
-                            .value = 1,
-                        },
-                        {
-                            .name = "quadp",
-                            .type = VALUE_T_ENUM,
-                            .value = 2,
-                        },
-                        {
-                            .name = "quadx",
-                            .type = VALUE_T_ENUM,
-                            .value = 3,
-                        },
-                        {
-                            .name = "bi",
-                            .type = VALUE_T_ENUM,
-                            .value = 4,
-                        },
-                        {
-                            .name = "gimbal",
-                            .type = VALUE_T_ENUM,
-                            .value = 5,
-                        },
-                        {
-                            .name = "y6",
-                            .type = VALUE_T_ENUM,
-                            .value = 6,
-                        },
-                        {
-                            .name = "hex6",
-                            .type = VALUE_T_ENUM,
-                            .value = 7,
-                        },
-                        {
-                            .name = "wing",
-                            .type = VALUE_T_ENUM,
-                            .value = 8,
-                        },
-                        {
-                            .name = "y4",
-                            .type = VALUE_T_ENUM,
-                            .value = 9,
-                        },
-                        {
-                            .name = "hex6x",
-                            .type = VALUE_T_ENUM,
-                            .value = 10 },
-                        {
-                            .name = "octox8",
-                            .type = VALUE_T_ENUM,
-                            .value = 11,
-                        },
-                        {
-                            .name = "octoflatp",
-                            .type = VALUE_T_ENUM,
-                            .value = 12,
-                        },
-                        {
-                            .name = "octoflatx",
-                            .type = VALUE_T_ENUM,
-                            .value = 13,
-                        },
-                        {
-                            .name = "airplane",
-                            .type = VALUE_T_ENUM,
-                            .value = 14,
-                        },
-                        {
-                            .name = "heli_120_ccpm",
-                            .type = VALUE_T_ENUM,
-                            .value = 15
-                        },
-                        {
-                            .name = "heli_90_deg",
-                            .type = VALUE_T_ENUM,
-                            .value = 16,
-                        },
-                        {
-                            .name = "vtail4",
-                            .type = VALUE_T_ENUM,
-                            .value = 17,
-                        },
-                        {
-                            .name = NULL,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                        .vals = (struct msp_int_value []) {
+                            {
+                                .name = "tri",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 1,
+                            },
+                            {
+                                .name = "quadp",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 2,
+                            },
+                            {
+                                .name = "quadx",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 3,
+                            },
+                            {
+                                .name = "bi",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 4,
+                            },
+                            {
+                                .name = "gimbal",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 5,
+                            },
+                            {
+                                .name = "y6",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 6,
+                            },
+                            {
+                                .name = "hex6",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 7,
+                            },
+                            {
+                                .name = "wing",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 8,
+                            },
+                            {
+                                .name = "y4",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 9,
+                            },
+                            {
+                                .name = "hex6x",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 10 },
+                            {
+                                .name = "octox8",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 11,
+                            },
+                            {
+                                .name = "octoflatp",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 12,
+                            },
+                            {
+                                .name = "octoflatx",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 13,
+                            },
+                            {
+                                .name = "airplane",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 14,
+                            },
+                            {
+                                .name = "heli_120_ccpm",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 15
+                            },
+                            {
+                                .name = "heli_90_deg",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 16,
+                            },
+                            {
+                                .name = "vtail4",
+                                .type = MSP_VALUE_T_ENUM,
+                                .value = 17,
+                            },
+                            {
+                                .type = 0,
+                            },
                         },
                     },
                 },
                 {
                     .name = "mspversion",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "capabilities",
-                    .type = FIELD_T_UINT32,
-                    .vals = (struct msp_field_value []) {
-                        {
-                            .name = "bind",
-                            .type = VALUE_T_BITS,
-                            .value = 0x1,
-                        },
-                        {
-                            .name = "dynbal",
-                            .type = VALUE_T_BITS,
-                            .value = 0x4,
-                        },
-                        {
-                            .name = "flap",
-                            .type = VALUE_T_BITS,
-                            .value = 0x8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                        .vals = (struct msp_int_value []) {
+                            {
+                                .name = "bind",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x1,
+                            },
+                            {
+                                .name = "dynbal",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x4,
+                            },
+                            {
+                                .name = "flap",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x8,
+                            },
                         },
                     },
                 },
@@ -159,54 +176,64 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "status",
         .cmd = MSP_STATUS,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "cycletime",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "i2cerrcnt",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "hwcaps",
-                    .type = FIELD_T_UINT8,
-                    .vals = (struct msp_field_value []) {
-                        {
-                            .name = "acc",
-                            .type = VALUE_T_BITS,
-                            .value = 0x1,
-                        },
-                        {
-                            .name = "baro",
-                            .type = VALUE_T_BITS,
-                            .value = 0x2,
-                        },
-                        {
-                            .name = "mag",
-                            .type = VALUE_T_BITS,
-                            .value = 0x4,
-                        },
-                        {
-                            .name = "gps",
-                            .type = VALUE_T_BITS,
-                            .value = 0x8,
-                        },
-                        {
-                            .name = "sonar",
-                            .type = VALUE_T_BITS,
-                            .value = 0x10,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                        .vals = (struct msp_int_value []) {
+                            {
+                                .name = "acc",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x1,
+                            },
+                            {
+                                .name = "baro",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x2,
+                            },
+                            {
+                                .name = "mag",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x4,
+                            },
+                            {
+                                .name = "gps",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x8,
+                            },
+                            {
+                                .name = "sonar",
+                                .type = MSP_VALUE_T_BITS,
+                                .value = 0x10,
+                            },
                         },
                     },
                 },
                 {
                     .name = "box",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "conf",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = NULL,
@@ -218,22 +245,43 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "raw_imu",
         .cmd = MSP_RAW_IMU,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "acc",
-                    .type = FIELD_T_UINT16,
-                    .rep = 2,
+                    .data = {
+                        .type = MSP_DATA_T_ARRAY,
+                        .elem = &(struct msp_array) {
+                            .data = {
+                                .type = MSP_DATA_T_UINT16,
+                            },
+                            .cnt = 3,
+                        },
+                    },
                 },
                 {
                     .name = "gyr",
-                    .type = FIELD_T_UINT16,
-                    .rep = 2,
+                    .data = {
+                        .type = MSP_DATA_T_ARRAY,
+                        .elem = &(struct msp_array) {
+                            .data = {
+                                .type = MSP_DATA_T_UINT16,
+                            },
+                            .cnt = 3,
+                        },
+                    },
                 },
                 {
                     .name = "mag",
-                    .type = FIELD_T_UINT16,
-                    .rep = 2,
+                    .data = {
+                        .type = MSP_DATA_T_ARRAY,
+                        .elem = &(struct msp_array) {
+                            .data = {
+                                .type = MSP_DATA_T_UINT16,
+                            },
+                            .cnt = 3,
+                        },
+                    },
                 },
                 {
                     .name = NULL,
@@ -245,16 +293,12 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "servo",
         .cmd = MSP_SERVO,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "chn",
-                    .type = FIELD_T_UINT16,
-                    .rep = REP_EOM,
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
                 },
-                {
-                    .name = NULL,
-                },
+                .cnt = MSP_SIZE_EOM,
             },
         },
     },
@@ -262,16 +306,12 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "motor",
         .cmd = MSP_MOTOR,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "chn",
-                    .type = FIELD_T_UINT16,
-                    .rep = REP_EOM,
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
                 },
-                {
-                    .name = NULL,
-                },
+                .cnt = MSP_SIZE_EOM,
             },
         },
     },
@@ -279,13 +319,12 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "rc",
         .cmd = MSP_RC,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "chn",
-                    .type = FIELD_T_UINT16,
-                    .rep = REP_EOM,
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
                 },
+                .cnt = MSP_SIZE_EOM,
             },
         },
     },
@@ -293,35 +332,49 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "raw_gps",
         .cmd = MSP_RAW_GPS,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "fix",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    }
                 },
                 {
                     .name = "numSat",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    }
                 },
                 {
                     .name = "coord_lat",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    }
                 },
                 {
                     .name = "coord_lon",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    }
                 },
                 {
                     .name = "altitude",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = "speed",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = "ground_course",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = NULL,
@@ -333,19 +386,25 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "comp_gps",
         .cmd = MSP_COMP_GPS,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "distanceToHome",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "directionToHome",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "update",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = NULL,
@@ -357,23 +416,31 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "attitude",
         .cmd = MSP_ATTITUDE,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "roll",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = "pitch",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = "heading",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = "headFreeModeHold",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    }
                 },
                 {
                     .name = NULL,
@@ -385,19 +452,25 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "analog",
         .cmd = MSP_ANALOG,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "vbat",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "intPowerMeterSum",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "rssi",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = NULL,
@@ -409,35 +482,49 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "rc_tuning",
         .cmd = MSP_RC_TUNING,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "rcRate",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "rcExpo",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "rollPitchRate",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "yawRate",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "dynThrPID",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "thrMid8",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "thrExpo8",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = NULL,
@@ -449,85 +536,77 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "pid",
         .cmd = MSP_PID,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "roll",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "pitch",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "yaw",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "alt",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "pos",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "posr",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "navr",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "level",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "mag",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = "vel",
-                    .type = FIELD_T_STRUCT,
-                    .elem = msp_pid_field,
-                },
-            },
-        },
-    },
-    {
-        .name = "pidnames",
-        .cmd = MSP_PIDNAMES,
-        .rsp = {
-            .type = MSG_T_NAMES,
-        },
-    },
-    {
-        .name = "boxnames",
-        .cmd = MSP_BOXNAMES,
-        .rsp = {
-            .type = MSG_T_NAMES,
-        },
-    },
-    {
-        .name = "boxids",
-        .cmd = MSP_BOXIDS,
-        .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "item",
-                    .type = FIELD_T_UINT8,
-                    .rep = REP_EOM,
+                    .data = {
+                        .type = MSP_DATA_T_STRUCT,
+                        .fields = msp_pid_fields,
+                    },
                 },
                 {
                     .name = NULL,
@@ -536,15 +615,56 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         },
     },
     {
+        .name = "pidnames",
+        .cmd = MSP_PIDNAMES,
+        .rsp = {
+            .type = MSP_DATA_T_NAMES,
+        },
+    },
+    {
+        .name = "boxnames",
+        .cmd = MSP_BOXNAMES,
+        .rsp = {
+            .type = MSP_DATA_T_NAMES,
+        },
+    },
+    {
+        .name = "boxids",
+        .cmd = MSP_BOXIDS,
+        .rsp = {
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT8,
+                },
+                .cnt = MSP_SIZE_EOM,
+            },
+        },
+    },
+    {
+        .name = "box",
+        .cmd = MSP_BOX,
+        .rsp = {
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
+                },
+                .cnt = MSP_SIZE_EOM,
+            },
+        },
+    },
+    {
         .name = "misc",
         .cmd = MSP_MISC,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "intPowerTrigger1",
-                    .type = FIELD_T_UINT16,
-                    .rep = -1,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = NULL,
@@ -556,13 +676,12 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "motor_pins",
         .cmd = MSP_MOTOR_PINS,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "pins",
-                    .type = FIELD_T_UINT8,
-                    .rep = -1,
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT8,
                 },
+                .cnt = MSP_SIZE_EOM,
             },
         },
     },
@@ -570,35 +689,49 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "wp",
         .cmd = MSP_WP,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "wp_no",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "lat",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "lon",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "alt",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "heading",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "tts",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "nav",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = NULL,
@@ -610,35 +743,49 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "set_wp",
         .cmd = MSP_SET_WP,
         .req = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
+            .type = MSP_DATA_T_STRUCT,
+            .fields = (struct msp_struct_field []) {
                 {
                     .name = "wp_no",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = "lat",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "lon",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "alt",
-                    .type = FIELD_T_UINT32,
+                    .data = {
+                        .type = MSP_DATA_T_UINT32,
+                    },
                 },
                 {
                     .name = "heading",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "tts",
-                    .type = FIELD_T_UINT16,
+                    .data = {
+                        .type = MSP_DATA_T_UINT16,
+                    },
                 },
                 {
                     .name = "nav",
-                    .type = FIELD_T_UINT8,
+                    .data = {
+                        .type = MSP_DATA_T_UINT8,
+                    },
                 },
                 {
                     .name = NULL,
@@ -670,16 +817,12 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "debug",
         .cmd = MSP_DEBUG,
         .rsp = {
-            .type = MSG_T_STRUCT,
-            .data = (struct msp_msg_field []) {
-                {
-                    .name = "debug",
-                    .type = FIELD_T_UINT16,
-                    .rep = -1,
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
                 },
-                {
-                    .name = NULL,
-                },
+                .cnt = MSP_SIZE_EOM,
             },
         },
     },
@@ -687,7 +830,33 @@ const struct msp_cmd_info msp_cmd_infos[] = {
         .name = "debugmsg",
         .cmd = MSP_DEBUGMSG,
         .rsp = {
-            .type = MSG_T_STRING,
+            .type = MSP_DATA_T_STRING,
+        },
+    },
+    {
+        .name = "set_raw_rc",
+        .cmd = MSP_SET_RAW_RC,
+        .req = {
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
+                },
+                .cnt = 8,
+            },
+        },
+    },
+    {
+        .name = "set_box",
+        .cmd = MSP_SET_BOX,
+        .req = {
+            .type = MSP_DATA_T_ARRAY,
+            .elem = &(struct msp_array) {
+                .data = {
+                    .type = MSP_DATA_T_UINT16,
+                },
+                .cnt = MSP_SIZE_EOM,
+            },
         },
     },
     {

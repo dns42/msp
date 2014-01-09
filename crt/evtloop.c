@@ -117,9 +117,9 @@ evtloop_iterate(struct evtloop *loop)
     }
 
     nfds = select(nfds + 1, &rfds, &wfds, NULL, timeo);
-
-    rc = nfds < 0 ? -1 : 0;
 out:
+    rc = nfds < 0 ? -1 : 0;
+
     if (nfds == 0) {
         gettimeofday(&now, NULL);
         timerwheel_run(loop->timers, &now);
@@ -137,11 +137,12 @@ out:
 
             assert((evt->events | revents) == evt->events);
 
-            if (revents)
+            if (revents) {
                 evt->fn(revents, evt->data);
 
-            if (!--nfds)
-                break;
+                if (!--nfds)
+                    break;
+            }
         }
         assert(!nfds);
     }

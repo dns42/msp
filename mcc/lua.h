@@ -46,11 +46,13 @@ void lua_destroy(struct lua_State *);
 #define MCC_LUA_LEN(_mod)                                   \
     ((size_t)(MCC_LUA_END(_mod) - MCC_LUA_START(_mod)))
 
-void
-lua_object_classinit(struct lua_State *,
-                     const char *tname,
-                     const struct luaL_reg *reg_class,
-                     const struct luaL_reg *reg_meta);
+void lua_object_getclass(struct lua_State *L,
+                         const char *name);
+
+void lua_object_initclass(struct lua_State *,
+                          const char *tname,
+                          const struct luaL_reg *cls,
+                          const struct luaL_reg *meta);
 
 int luaopen_object(struct lua_State *);
 
@@ -69,6 +71,10 @@ int luaopen_rmi(struct lua_State *);
 int luaopen_mcc(struct lua_State *);
 
 int luaopen_event(struct lua_State *);
+
+int luaopen_timer(struct lua_State *);
+
+int luaopen_bit32(struct lua_State *);
 
 #endif
 

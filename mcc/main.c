@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <rpc/svc.h>
 
 static void
 usage(FILE *s, const char *prog)
@@ -32,12 +33,12 @@ static int g_stop;
 static void
 sigshutdown(int signo)
 {
-    info("caught <sig%d>, quit", signo);
+    info("SIG%d, stop.", signo);
 
     g_stop = 1;
 
     if (g_mcc)
-        mcc_stop(g_mcc);
+        mcc_stop(g_mcc, EXIT_SUCCESS, "Exit on signal");
 }
 
 static int
@@ -63,12 +64,13 @@ siginit(void)
 int
 main(int argc, char **argv)
 {
-    const char *path;
+    char *path;
     lua_State *L;
     int rc;
 
-    rc = -1;
+    path = NULL;
     L = NULL;
+    rc = -1;
 
     do {
         int c;
@@ -106,26 +108,32 @@ main(int argc, char **argv)
     if (optind >= argc)
         goto usage;
 
-    path = argv[optind++];
+    path = realpath(argv[optind++], NULL);
 
     L = lua_create();
     if (!L)
         goto out;
 
+    info("Running %s", path);
+
     rc = luaL_dofile(L, path) ? -1 : 0;
-    if (rc) {
-        error("%s", lua_tostring(L, -1));
-        goto out;
-    }
+    if (rc)
+        mcc_stop(g_mcc, EXIT_FAILURE, lua_tostring(L, -1));
 
     rc = mcc_run(g_mcc, g_loop);
 out:
+    info("%s, %s", rc ? "Failure" : "Shutdown", mcc_reason(g_mcc));
+
     if (L)
         lua_destroy(L);
+    if (path)
+        free(path);
     if (g_loop)
         evtloop_destroy(g_loop);
     if (g_mcc)
         mcc_destroy(g_mcc);
+
+    svc_exit();
 
     return rc ? 1 : 0;
 

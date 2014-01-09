@@ -97,7 +97,7 @@ void
 log_vprintf(const struct log_hdr *hdr, const char *fmt, va_list ap)
 {
     struct log_target *log;
-    char buf[128];
+    char buf[192];
 
     log = log_target;
 

@@ -193,8 +193,11 @@ lua_joystick_open(struct lua_State *L)
     path = luaL_checkstring(L, 1);
 
     js = js_open(path);
+    if (!js)
+        luaL_error(L, "Joystick.open('%s'): %s",
+                   path, strerror(errno));
 
-    return js ? lua_joystick_new(L, js) : 0;
+    return lua_joystick_new(L, js);
 }
 
 static int
@@ -258,7 +261,7 @@ luaopen_joystick(struct lua_State *L)
     luaL_openlib(L, "Joystick", lua_joystick_fn, 0);
     lua_pop(L, 1);
 
-    lua_object_classinit(L, "Joystick",
+    lua_object_initclass(L, "Joystick",
                          lua_joystick_class,
                          lua_joystick_meta);
 

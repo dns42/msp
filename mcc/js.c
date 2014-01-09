@@ -305,8 +305,6 @@ js_open(const char *path)
     js->naxes = cnt;
     js->axes = calloc(cnt, sizeof(*js->axes));
 
-    debug("axes %p", js->axes);
-
     rc = expected(js->axes) ? 0 : -1;
     if (rc)
         goto out;
@@ -319,8 +317,6 @@ js_open(const char *path)
 
     js->nbuttons = cnt;
     js->buttons = calloc(cnt, sizeof(*js->buttons));
-
-    debug("buttons %p", js->buttons);
 
     rc = expected(js->buttons) ? 0 : -1;
     if (rc)
@@ -379,6 +375,12 @@ int
 js_plug(struct js *js, struct evtloop *loop)
 {
     int rc;
+
+    rc = unexpected(js->evt) ? -1 : 0;
+    if (rc) {
+        errno = EALREADY;
+        goto out;
+    }
 
     js->evt = evtloop_add_pollfd(loop, js->fd,
                                  js_pollevt, js);

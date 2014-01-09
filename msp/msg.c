@@ -150,6 +150,16 @@ out:
 }
 
 static int
+msp_misc_rsp_dec(const struct msp_hdr *hdr, void *data)
+{
+    struct msp_misc *misc = data;
+
+    misc->intPowerTrigger1 = avrtoh(misc->intPowerTrigger1);
+
+    return 0;
+}
+
+static int
 msp_set_raw_rc_req_enc(const struct msp_hdr *hdr, void *data)
 {
     struct msp_raw_rc *rrc = data;
@@ -265,8 +275,16 @@ const struct msp_msg_info msp_msg_infos[MSP_CMD_MAX] = {
         .req = NULL,
         .rsp = msp_box_rsp_dec,
     },
+    [MSP_MISC] = {
+        .tag = "MSP_MISC",
+        .sup = 1,
+        .min = sizeof(struct msp_misc),
+        .max = sizeof(struct msp_misc),
+        .req = NULL,
+        .rsp = msp_misc_rsp_dec,
+    },
     [MSP_MOTOR_PINS] = {
-        .tag = "MSP_PINS",
+        .tag = "MSP_MOTOR_PINS",
         .sup = 1,
         .min = sizeof(struct msp_motor_pins),
         .max = sizeof(struct msp_motor_pins),
@@ -370,7 +388,7 @@ msp_msg_decode_rsp(const struct msp_hdr *hdr, void *data)
     rc = -1;
     info = &msp_msg_infos[hdr->cmd];
 
-    if (!info->sup) {
+    if (!expected(info->sup)) {
         errno = EPROTO;
         goto out;
     }

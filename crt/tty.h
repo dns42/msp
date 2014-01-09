@@ -5,7 +5,9 @@
 #include <sys/uio.h>
 #include <crt/evtloop.h>
 
-speed_t tty_speed(int baud);
+speed_t tty_itospeed(int baud);
+
+int tty_speedtoi(speed_t speed);
 
 struct tty * tty_open(const char *path, speed_t);
 
@@ -26,6 +28,8 @@ void tty_rxflush(struct tty *tty);
 int tty_plug(struct tty *tty, struct evtloop *loop);
 
 void tty_unplug(struct tty *tty);
+
+int tty_plugged(struct tty *tty);
 
 #endif
 

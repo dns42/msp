@@ -3,6 +3,8 @@
 #endif
 
 #include <mcc/lua.h>
+#include <mcc/lua-event.h>
+#include <mcc/lua-rcvec.h>
 #include <mcc/nrx.h>
 
 #include <crt/log.h>
@@ -151,6 +153,47 @@ lua_netrx_sockname(struct lua_State *L)
     return 1;
 }
 
+static void
+lua_netrx_marshal(struct lua_State *L, va_list ap)
+{
+    int len;
+    uint16_t *val;
+
+    val = va_arg(ap, uint16_t*);
+    len = va_arg(ap, int);
+
+    __lua_rcvec_new(L, val, len);
+}
+
+static int
+lua_netrx_link(struct lua_State *L)
+{
+    struct lua_NetRX *R;
+    struct signal *sig;
+    int nrxref;
+
+    sig = NULL;
+
+    R = lua_netrx_check(L, 1);
+
+    if (R->c) {
+        const char *change;
+
+        change = luaL_checkstring(L, 2);
+
+        sig = nrx_link(R->c, change);
+    }
+
+    if (sig) {
+        lua_settop(L, 1);
+        nrxref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+
+    return sig
+        ? lua_signal_new(L, sig, lua_netrx_marshal, nrxref)
+        : 0;
+}
+
 static int
 lua_netrx_plugged(struct lua_State *L)
 {
@@ -182,13 +225,10 @@ lua_netrx_tostring(struct lua_State *L)
     return 1;
 }
 
-static const struct luaL_reg lua_netrx_fn [] = {
-    { "bind", lua_netrx_bind },
-    { NULL, NULL }
-};
-
 static const struct luaL_reg lua_netrx_class [] = {
+    { "bind", lua_netrx_bind },
     { "sockname", lua_netrx_sockname },
+    { "link", lua_netrx_link },
     { "close", lua_netrx_close },
     { "plugged", lua_netrx_plugged },
     { NULL, NULL }
@@ -211,10 +251,7 @@ luaopen_netrx(struct lua_State *L)
     assert(!rc);
     lua_call(L, 0, 0);
 
-    luaL_openlib(L, "NetRX", lua_netrx_fn, 0);
-    lua_pop(L, 1);
-
-    lua_object_classinit(L, "NetRX",
+    lua_object_initclass(L, "NetRX",
                          lua_netrx_class,
                          lua_netrx_meta);
 

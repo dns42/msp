@@ -8,6 +8,7 @@
 #include <crt/event.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 
 struct mcc *
 mcc_create(void)
@@ -40,6 +41,7 @@ static const struct event_info mcc_events_tab[] = {
 void
 mcc_destroy(struct mcc *mcc)
 {
+    free(mcc->reason);
     event_unlink_tab(&mcc->events, mcc_events_tab);
     free(mcc);
 }
@@ -51,9 +53,24 @@ mcc_link(struct mcc *mcc, const char *event)
 }
 
 void
-mcc_stop(struct mcc *mcc)
+mcc_stop(struct mcc *mcc, int status, const char *reason, ...)
 {
     mcc->stop = 1;
+    mcc->exit = status;
+
+    if (reason && !mcc->reason) {
+        va_list ap;
+
+        va_start(ap, reason);
+        vasprintf(&mcc->reason, reason, ap);
+        va_end(ap);
+    }
+}
+
+const char *
+mcc_reason(struct mcc *mcc)
+{
+    return mcc->reason;
 }
 
 int
@@ -64,17 +81,21 @@ mcc_run(struct mcc *mcc,
 
     rc = 0;
 
-    while (!mcc->stop) {
+    while (!mcc_stopped(mcc)) {
 
         rc = evtloop_iterate(loop);
 
         if (rc && unexpected(errno != EINTR))
-            break;
+            mcc_stop(mcc, EXIT_FAILURE, strerror(errno));
     }
 
-    mcc->stop = 0;
+    return mcc->exit == EXIT_SUCCESS ? 0 : -1;
+}
 
-    return rc;
+int
+mcc_stopped(struct mcc *mcc)
+{
+    return mcc->stop;
 }
 
 /*

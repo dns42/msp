@@ -55,8 +55,7 @@ nrx_1_rc(struct nrx *nrx,
     for (i = 0; i < nrx->nchn && i < len; i++)
         nrx->chn[i] = val[i];
 
-    for (; i < nrx->nchn; i++)
-        nrx->chn[i] = 0;
+    nrx->nrcv = len;
 
     return NULL;
 }
@@ -149,7 +148,17 @@ nrx_bind(int nchn, struct sockaddr_in *addr, unsigned long vers)
         goto out;
     }
 
-    vers = vers ? : NRX_V1;
+    switch (vers) {
+    case 0:
+    case NRX_V1:
+        vers = vers ? : NRX_V1;
+        break;
+    default:
+        errno = ENOSYS;
+        error("unsupported version: %lu", vers);
+        goto out;
+        break;
+    }
 
     nrx = calloc(1, offsetof(struct nrx, chn[nchn]));
 
@@ -157,6 +166,7 @@ nrx_bind(int nchn, struct sockaddr_in *addr, unsigned long vers)
     if (rc)
         goto out;
 
+    nrx->vers = vers;
     nrx->nchn = nchn;
     nrx->sock = socket(addr->sin_family, SOCK_DGRAM, 0);
 
@@ -177,7 +187,7 @@ nrx_bind(int nchn, struct sockaddr_in *addr, unsigned long vers)
         goto out;
 
     ok = svc_register(nrx->xprt,
-                      NRX_PROGRAM, vers,
+                      NRX_PROGRAM, nrx->vers,
                       nrx_1_prog, 0);
 
     rc = expected(ok) ? 0 : -1;
@@ -199,6 +209,10 @@ out:
 void
 nrx_close(struct nrx *nrx)
 {
+    nrx_unplug(nrx);
+
+    event_unlink(nrx->receive);
+
     list_remove(&nrx->entry);
 
     if (nrx->xprt)
@@ -235,8 +249,8 @@ nrx_pollevt(int revents, void *data)
 
         nrx_recv(nrx);
 
-        if (nrx->rcupdate)
-            event_emit(nrx->rcupdate);
+        if (nrx->nrcv)
+            event_emit(nrx->receive, nrx->chn, nrx->nrcv);
     }
 }
 
@@ -244,7 +258,7 @@ struct signal *
 nrx_link(struct nrx *nrx, const char *event)
 {
     static const struct event_info tab[] = {
-        EVENT_INFO(struct nrx, rcupdate),
+        EVENT_INFO(struct nrx, receive),
         EVENT_INFO_NULL,
     };
 
@@ -255,6 +269,12 @@ int
 nrx_plug(struct nrx *nrx, struct evtloop *loop)
 {
     int rc;
+
+    rc = unexpected(nrx->evt) ? -1 : 0;
+    if (rc) {
+        errno = EALREADY;
+        goto out;
+    }
 
     nrx->evt = evtloop_add_pollfd(loop, nrx->sock,
                                   nrx_pollevt, nrx);

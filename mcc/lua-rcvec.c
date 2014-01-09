@@ -24,8 +24,7 @@ lua_rcvec_check(struct lua_State *L, int n)
 }
 
 static int
-lua_rcvec_checkindex(struct lua_State *L,
-                     struct lua_RCVec *V, int idx)
+lua_rcvec_checkindex(struct lua_State *L, int idx)
 {
     int n;
 
@@ -41,19 +40,19 @@ lua_rcvec_checkindex(struct lua_State *L,
 
         switch (c) {
         case 'r':
-            n = 0;
-            break;
-        case 'p':
             n = 1;
             break;
-        case 'y':
+        case 'p':
             n = 2;
             break;
-        case 't':
+        case 'y':
             n = 3;
             break;
+        case 't':
+            n = 4;
+            break;
         default:
-            if ('0' <= c && c <= '9') {
+            if ('1' <= c && c <= '8') {
                 n = c - '0';
                 break;
             }
@@ -65,8 +64,8 @@ lua_rcvec_checkindex(struct lua_State *L,
         break;
     }
 
-    luaL_argcheck(L, 0 <= n && n < V->len, 2,
-                  "valid index expected");
+    luaL_argcheck(L, 1 <= n && n <= 8, idx,
+                  "valid index (0..7 or r/p/y/t) expected");
 
     return n;
 }
@@ -78,11 +77,21 @@ lua_rcvec_index(struct lua_State *L)
     int n;
 
     V = lua_rcvec_check(L, 1);
-    n = lua_rcvec_checkindex(L, V, 2);
+    n = lua_rcvec_checkindex(L, 2);
 
-    lua_pushnumber(L, V->val[n]);
+    lua_pushnumber(L, V->val[n - 1]);
 
     return 1;
+}
+
+static void
+lua_rcvec_set(struct lua_RCVec *V, int n, uint16_t v)
+{
+    assert(1 <= n && n <= array_size(V->val));
+
+    V->val[n - 1] = v;
+
+    V->len = max(V->len, n + 1);
 }
 
 static int
@@ -92,13 +101,36 @@ lua_rcvec_newindex(struct lua_State *L)
     int n, v;
 
     V = lua_rcvec_check(L, 1);
-    n = lua_rcvec_checkindex(L, V, 2);
+    n = lua_rcvec_checkindex(L, 2);
     v = luaL_checknumber(L, 3);
 
     luaL_argcheck(L, !v || (1000 <= v && v <= 2000), 3,
                   "number in range {0, 1000 .. 2000} expected");
 
-    V->val[n] = v;
+    lua_rcvec_set(V, n, v);
+
+    return 1;
+}
+
+int
+__lua_rcvec_new(struct lua_State *L,
+                const uint16_t *val, int len)
+{
+    struct lua_RCVec *V;
+    int i;
+
+    V = lua_newuserdata(L, sizeof(struct lua_RCVec));
+    luaL_getmetatable(L, "RCVec");
+    lua_setmetatable(L, -2);
+
+    V->len = 0;
+    memset(V->val, 0, sizeof(V->val));
+
+    for (i = 0; val && i < len; i++)
+        lua_rcvec_set(V, i + 1, val[i]);
+
+    for (; i < array_size(V->val); i++)
+        V->val[i] = 0;
 
     return 1;
 }
@@ -106,30 +138,14 @@ lua_rcvec_newindex(struct lua_State *L)
 static int
 lua_rcvec_new(struct lua_State *L)
 {
-    struct lua_RCVec *V;
-    size_t size;
-    int len;
+    __lua_rcvec_new(L, NULL, 8);
 
-    len = lua_gettop(L)
-        ? luaL_checknumber(L, 1)
-        : 8;
-
-    size = offsetof(struct lua_RCVec, val[len]);
-
-    V = lua_newuserdata(L, size);
-    luaL_getmetatable(L, "RCVec");
-    lua_setmetatable(L, -2);
-
-    memset(V, 0, size);
-
-    V->len = len;
-
-    if (lua_gettop(L) > 2) {
+    if (lua_gettop(L) > 1) {
         lua_getglobal(L, "RCVec");
         lua_getfield(L, -1, "update");
         lua_remove(L, -2);
         lua_pushvalue(L, -2);
-        lua_pushvalue(L, 2);
+        lua_pushvalue(L, 1);
         lua_call(L, 2, 0);
     }
 
@@ -210,7 +226,7 @@ luaopen_rcvec(struct lua_State *L)
     luaL_openlib(L, "RCVec", lua_rcvec_fn, 0);
     lua_pop(L, 1);
 
-    lua_object_classinit(L, "RCVec",
+    lua_object_initclass(L, "RCVec",
                          lua_rcvec_class,
                          lua_rcvec_meta);
 

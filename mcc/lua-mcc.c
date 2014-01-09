@@ -8,14 +8,21 @@
 extern struct mcc *g_mcc;
 
 static int
-__mcc_stop(lua_State *L)
+lua_mcc_stop(lua_State *L)
 {
-    mcc_stop(g_mcc);
+    int status;
+    const char *reason;
+
+    status = luaL_checkinteger(L, 1);
+    reason = luaL_checkstring(L, 2);
+
+    mcc_stop(g_mcc, status, reason);
+
     return 0;
 }
 
 static const struct luaL_reg mcc_f [] = {
-    { "stop", __mcc_stop },
+    { "stop", lua_mcc_stop },
     { NULL, NULL }
 };
 

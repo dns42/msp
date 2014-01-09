@@ -6,10 +6,13 @@
 
 struct lua_RCVec {
     int len;
-    uint16_t val[0];
+    uint16_t val[8];
 };
 
 struct lua_RCVec * lua_rcvec_check(struct lua_State *L, int idx);
+
+int __lua_rcvec_new(struct lua_State *L,
+                    const uint16_t *val, int len);
 
 #endif
 

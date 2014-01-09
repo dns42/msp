@@ -33,6 +33,7 @@ noinst_LTLIBRARIES += libmcc-lua.la
 
 libmcc_lua_la_SOURCES  = lua.c
 libmcc_lua_la_SOURCES += lua.h
+libmcc_lua_la_SOURCES += lua-bit32.c
 libmcc_lua_la_SOURCES += lua-object.c
 libmcc_lua_la_SOURCES += lua-joystick.c
 libmcc_lua_la_SOURCES += lua-rcvec.c
@@ -44,6 +45,7 @@ libmcc_lua_la_SOURCES += lua-rmi.c
 libmcc_lua_la_SOURCES += lua-mcc.c
 libmcc_lua_la_SOURCES += lua-event.c
 libmcc_lua_la_SOURCES += lua-event.h
+libmcc_lua_la_SOURCES += lua-timer.c
 
 include $(top_srcdir)/mk/lua.mk
 
@@ -51,14 +53,18 @@ noinst_LIBRARIES = libmcc-lbc.a
 
 libmcc_lbc_a_SOURCES  =
 
-libmcc_lbc_a_LIBADD  = object.lbc.o
-libmcc_lbc_a_LIBADD += event.lbc.o
-libmcc_lbc_a_LIBADD += joystick.lbc.o
-libmcc_lbc_a_LIBADD += rcvec.lbc.o
-libmcc_lbc_a_LIBADD += nettx.lbc.o
-libmcc_lbc_a_LIBADD += netrx.lbc.o
-libmcc_lbc_a_LIBADD += msp.lbc.o
-libmcc_lbc_a_LIBADD += rmi.lbc.o
+libmcc_lbc_a_LUA  = object.lua
+libmcc_lbc_a_LUA += event.lua
+libmcc_lbc_a_LUA += timer.lua
+libmcc_lbc_a_LUA += joystick.lua
+libmcc_lbc_a_LUA += rcvec.lua
+libmcc_lbc_a_LUA += nettx.lua
+libmcc_lbc_a_LUA += netrx.lua
+libmcc_lbc_a_LUA += msp.lua
+#libmcc_lbc_a_LUA += multiwii.lua
+libmcc_lbc_a_LUA += rmi.lua
+
+libmcc_lbc_a_LIBADD  = $(patsubst %.lua, %.lbc.o, $(libmcc_lbc_a_LUA))
 
 include $(top_srcdir)/mk/rpc.mk
 
@@ -74,11 +80,7 @@ libmcc_rpc_la_CPPFLAGS  = $(AM_CPPFLAGS)
 libmcc_rpc_la_CPPFLAGS += -I$(builddir)
 
 EXTRA_DIST  = nrx_rpc.x
-EXTRA_DIST += rc.lua
-EXTRA_DIST += tx.lua
-EXTRA_DIST += js.lua
-EXTRA_DIST += object.lua
-EXTRA_DIST += msp.lua
+EXTRA_DIST += $(libmcc_lbc_a_LUA)
 
 CLEANFILES  = *.lbc.o
 CLEANFILES += $(nodist_libnrxrpc_la_SOURCES)

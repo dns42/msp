@@ -21,6 +21,7 @@ __timer_create(timer_fn fn, void *data,
     timer->entry = LIST(&timer->entry);
     timer->fn = fn;
     timer->data = data;
+    timer->wheel = wheel;
 out:
     return timer;
 }
@@ -33,33 +34,33 @@ timer_destroy(struct timer *timer)
 }
 
 void
-timer_start(struct timer *timer, const struct timeval *interval)
+timer_interval(struct timer *timer, const struct timeval *rel)
 {
     struct timeval now;
 
     gettimeofday(&now, NULL);
 
-    timer_restart(timer, &now, interval);
+    timer_restart(timer, &now, rel);
 }
 
 void
 timer_restart(struct timer *timer,
               const struct timeval *now,
-              const struct timeval *interval)
+              const struct timeval *rel)
 {
     struct timeval timeo;
 
-    timeradd(now, interval, &timeo);
+    timeradd(now, rel, &timeo);
 
-    timer_start_at(timer, &timeo);
+    timer_timeout(timer, &timeo);
 }
 
 void
-timer_start_at(struct timer *timer, const struct timeval *timeo)
+timer_timeout(struct timer *timer, const struct timeval *abs)
 {
     timer_stop(timer);
 
-    timer->timeo = *timeo;
+    timer->timeo = *abs;
 
     timerwheel_insert(timer->wheel, timer);
 }

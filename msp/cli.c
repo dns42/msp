@@ -716,14 +716,14 @@ main(int argc, char **argv)
             break;
 
         case 'b':
-            speed = tty_speed(atoi(optarg));
+            speed = tty_itospeed(atoi(optarg));
             if (speed == -1)
                 goto usage;
             break;
 
         case 'V':
-            printf("MultiWii Serial Protocol v%s, "
-                   "MSPv%d\n", PACKAGE_VERSION, MSP_VERSION);
+            printf("MultiWii Serial Protocol, "
+                   "libmsp v%s, MSPv%d\n", PACKAGE_VERSION, MSP_VERSION);
             rc = 0;
             goto out;
 

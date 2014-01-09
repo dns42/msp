@@ -106,7 +106,8 @@ lua_signal_handle(void *data, va_list ap)
     if (S->objref != -1)
         lua_rawgeti(L, LUA_REGISTRYINDEX, S->objref);
 
-    S->mfn(L, ap);
+    if (S->mfn)
+        S->mfn(L, ap);
 
     n = lua_gettop(L) - n - 1;
 
@@ -120,13 +121,14 @@ lua_signal_connect(struct lua_State *L)
 
     S = lua_signal_check(L, 1);
 
+    luaL_checktype(L, 2, LUA_TFUNCTION);
+
     if (S->funref != -1)
         lua_signal_disconnect(L);
 
     S->funref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     lua_settop(L, 1);
-
     S->sigref = luaL_ref(L, LUA_REGISTRYINDEX);
 
     signal_connect(S->sig, lua_signal_handle, S);
@@ -169,7 +171,7 @@ luaopen_event(struct lua_State *L)
     assert(!rc);
     lua_call(L, 0, 0);
 
-    lua_object_classinit(L, "Signal",
+    lua_object_initclass(L, "Signal",
                          lua_signal_class,
                          lua_signal_meta);
 

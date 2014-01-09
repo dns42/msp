@@ -5,6 +5,8 @@
 
 struct mcc {
     int stop;
+    int exit;
+    char *reason;
 
     struct mcc_events {
         struct event *start;

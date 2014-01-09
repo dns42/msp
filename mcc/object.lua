@@ -3,27 +3,30 @@ Object = {}
 setmetatable(Object, { __class = Object })
 
 function Object:extend(tab)
-   class = tab or {}
-   super = self:class()
+   local class = tab or {}
+   local super = self:class()
 
-   objmt = {
+   local objmt = {
       __index = class,
       __class = class,
    }
 
-   clsmt = {
+   local clsmt = {
       __index = super,
+      __super = super,
       __class = class,
       __objmt = objmt,
    }
 
    setmetatable(class, clsmt)
 
-   function class.new(tab)
+   function class.__ctor(tab)
       obj = tab or {}
       setmetatable(obj, objmt)
       return obj
    end
+
+   class.new = class.__ctor
 
    return class
 end
@@ -33,12 +36,12 @@ function Object:class()
 end
 
 function Object:super()
-   class = self:class()
+   local class = self:class()
    return getmetatable(class).__index
 end
 
 function Object:extends(class)
-   super = self:super()
+   local super = self:super()
    return super and super:isa(class)
 end
 

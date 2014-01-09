@@ -16,9 +16,9 @@
 #include <termios.h>
 
 speed_t
-tty_speed(int arg)
+tty_itospeed(int baud)
 {
-    switch (arg) {
+    switch (baud) {
     case 115200:
         return B115200;
     case 57600:
@@ -31,6 +31,25 @@ tty_speed(int arg)
         return B9600;
     }
 
+    errno = EINVAL;
+    return -1;
+}
+
+int
+tty_speedtoi(speed_t speed)
+{
+    switch (speed) {
+    case B115200:
+        return 115200;
+    case B57600:
+        return 57600;
+    case B38400:
+        return 38400;
+    case B9600:
+        return 9600;
+    }
+
+    errno = EINVAL;
     return -1;
 }
 
@@ -150,6 +169,8 @@ tty_setrxbuf(struct tty *tty,
              const struct iovec *iov, int cnt,
              tty_rx_fn rfn, void *priv)
 {
+    assert(tty_plugged(tty));
+
     tty->iov = iov;
     tty->cnt = cnt;
     tty->off = 0;
@@ -254,6 +275,12 @@ tty_unplug(struct tty *tty)
         pollevt_destroy(tty->evt);
         tty->evt = NULL;
     }
+}
+
+int
+tty_plugged(struct tty *tty)
+{
+    return tty->evt != NULL;
 }
 
 /*

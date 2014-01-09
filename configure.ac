@@ -7,6 +7,7 @@ AC_CONFIG_SRCDIR([msp/msp.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Wno-portability foreign nostdinc])
+AC_USE_SYSTEM_EXTENSIONS
 
 # Checks for programs.
 AC_LANG_WERROR

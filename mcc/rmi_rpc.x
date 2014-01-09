@@ -51,7 +51,7 @@ default:
 struct RMI1_discovery {
     string oid<>;
     string type<>;
-    u_long vers<>;
+    u_long vers;
     string detail<>;
 };
 

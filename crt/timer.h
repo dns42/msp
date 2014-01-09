@@ -11,15 +11,15 @@ typedef void (*timer_fn)(const struct timeval *timeo, void *data);
 struct timer *__timer_create(timer_fn fn, void *priv,
                              struct timerwheel *wheel);
 
-void timer_start(struct timer *timer,
-                 const struct timeval *interval);
+void timer_interval(struct timer *timer,
+                    const struct timeval *rel);
 
 void timer_restart(struct timer *timer,
                    const struct timeval *now,
-                   const struct timeval *interval);
+                   const struct timeval *rel);
 
-void timer_start_at(struct timer *timer,
-                    const struct timeval *timeo);
+void timer_timeout(struct timer *timer,
+                   const struct timeval *abs);
 
 void timer_stop(struct timer *timer);
 

@@ -10,6 +10,7 @@
 #include <sys/select.h>
 
 struct nrx {
+    int vers;
     int sock;
 
     SVCXPRT *xprt;
@@ -18,9 +19,10 @@ struct nrx {
 
     struct list entry;
 
-    struct event *rcupdate;
+    struct event *receive;
 
     int nchn;
+    int nrcv;
     uint16_t chn[0];
 };
 

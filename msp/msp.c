@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-static void msp_tty_return(struct msp *);
+static void msp_tty_restart(struct msp *);
 
 void
 msp_close(struct msp *msp)
@@ -28,20 +28,28 @@ msp_open(struct tty *tty, struct evtloop *loop)
     struct msp *msp;
     int rc;
 
-    rc = -1;
+    msp = NULL;
+
+    if (!tty_plugged(tty)) {
+        rc = tty_plug(tty, loop);
+        if (rc)
+            goto out;
+    }
 
     msp = calloc(1, sizeof(*msp));
-    if (!expected(msp))
+
+    rc = expected(msp) ? 0 : -1;
+    if (rc)
         goto out;
 
     msp->tty = tty;
     msp->loop = loop;
 
-    msp_tty_return(msp);
+    msp_tty_restart(msp);
 
     rc = 0;
 out:
-    if (rc) {
+    if (rc && msp) {
         int err = errno;
 
         msp_close(msp);
@@ -124,7 +132,7 @@ msp_call_init(struct msp *msp, msp_cmd_t cmd,
 
     rc = unexpected(call) ? -1 : 0;
     if (rc) {
-        errno = EBUSY;
+        errno = unexpected(EBUSY);
         goto out;
     }
 
@@ -154,7 +162,7 @@ out:
     }
 
     if (call)
-        timer_start(call->timer, timeo);
+        timer_interval(call->timer, timeo);
 
     return call;
 }
@@ -206,7 +214,7 @@ out:
 
     rfn(rc ? errno : 0, hdr, data, priv);
 
-    msp_tty_return(msp);
+    msp_tty_restart(msp);
 }
 
 static void
@@ -273,7 +281,7 @@ out:
 }
 
 static void
-msp_tty_return(struct msp *msp)
+msp_tty_restart(struct msp *msp)
 {
     msp->iov[0] = (struct iovec) {
         .iov_base = &msp->hdr,

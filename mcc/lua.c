@@ -25,7 +25,12 @@ __lua_realloc(void *priv,
 static int
 __lua_panic(struct lua_State *L)
 {
-    error("%s", lua_tostring(L, -1));
+    const char *msg;
+
+    msg = lua_tostring(L, -1);
+    info("%s", msg);
+    mcc_stop(g_mcc, EXIT_FAILURE, msg);
+
     return 0;
 }
 
@@ -34,10 +39,8 @@ __lua_print(lua_State* L)
 {
     int rc, n, i;
     char *S, *pos;
-    size_t len;
 
     S = pos = NULL;
-    len = 0;
     rc = 0;
 
     n = lua_gettop(L);
@@ -65,7 +68,7 @@ __lua_print(lua_State* L)
         if (l) {
             char *tmp;
 
-            tmp = realloc(S, len + (i > 1) + l + 1);
+            tmp = realloc(S, (pos - S) + (i > 1) + l + 1);
             if (!expected(tmp))
                 break;
 
@@ -79,7 +82,6 @@ __lua_print(lua_State* L)
 
             strncpy(pos, s, l + 1);
             pos += l;
-            len += l;
         }
 
         lua_pop(L, 1);
@@ -102,17 +104,24 @@ static int
 lua_libinit(struct lua_State *L)
 {
     const lua_CFunction *fnp, init[] = {
+        luaopen_bit32,
         luaopen_object,
         luaopen_event,
+        luaopen_timer,
         luaopen_joystick,
         luaopen_netrx,
         luaopen_nettx,
         luaopen_rcvec,
         luaopen_msp,
         luaopen_rmi,
+        luaopen_mcc,
         NULL,
     };
     lua_CFunction fn;
+
+    info("Initializing %s", LUA_RELEASE);
+
+    luaL_openlibs(L);
 
     lua_getglobal(L, "_G");
     luaL_register(L, NULL, base_f);

@@ -245,7 +245,7 @@ luaopen_nettx(struct lua_State *L)
     luaL_openlib(L, "NetTX", lua_nettx_fn, 0);
     lua_pop(L, 1);
 
-    lua_object_classinit(L, "NetTX",
+    lua_object_initclass(L, "NetTX",
                          lua_nettx_class,
                          lua_nettx_meta);
 
